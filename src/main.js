@@ -37,6 +37,11 @@ class FPSControls {
     this.scene = scene;
     this.pointerLockControls = pointerLockControls;
 
+    if (!this.pointerLockControls || !this.pointerLockControls.object) {
+      console.error('PointerLockControls object is not initialized correctly.');
+      return;
+    }
+
     // Ensure pointerLockControls is initialized and object is set
     if (!this.pointerLockControls?.object) {
       console.error("PointerLockControls object is not initialized correctly.");
@@ -152,6 +157,12 @@ class FPSControls {
   update(delta) {
     const targetPosition = new THREE.Vector3(-61, 4, -40); // Target position
     const tolerance = 4; // Tolerance for target position proximity
+
+
+    if (!this.pointerLockControls || !this.pointerLockControls.object) {
+      console.error("PointerLockControls or its object is not defined.");
+      return;
+    }
 
     const position = this.pointerLockControls.object.position;
 
@@ -1987,6 +1998,13 @@ function animate() {
     orbitControls.update(); // Update orbit controls
   }
 
+  // Add the flickering candlelight effect
+  if (pointLight) {
+    pointLight.intensity = Math.random() * 0.5 + 0.5; // Flickering effect
+  }
+
+  // Handle animation and render the scene
+  renderer.render(scene, camera);
 
   // Add the flickering candlelight effect
   if (pointLight) {
