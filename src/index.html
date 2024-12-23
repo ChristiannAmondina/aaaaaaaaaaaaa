@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horror Game  assa!!!eme</title>
+    <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+    <!-- WebGL Rendering Container -->
+    <div id="webgl-container"></div>
+
+    <!-- Game Mode Controls -->
+    <div id="controls">
+        <button id="firstPersonBtn" class="control-btn " style="display: none;" >Enter First Person Mode</button>
+        <button id="editModeBtn" class="control-btn">Edit Mode</button>
+    </div>
+
+    <!-- Damage Overlay (Visible when the player takes damage) -->
+    <div id="damage-overlay"></div>
+
+    <!-- Interaction Notes -->
+    <div id="key-collect-note" class="note" style="display: none;">Press C to collect the key</div>
+    <div id="door-open-note" class="note" style="display: none;">Press E to unlock the door</div>
+    
+    <!-- Key Image Container (Shown after the key is collected) -->
+    <div id="key-image-container" style="display: none;">
+        <img id="key-image" src="./images/pics/key.png" alt="Collected Key" />
+    </div>
+    <!-- Key Image Container (Shown after the key is collected) -->
+  <div class="inventory">
+    <h1>INVENTORY</h1>
+
+    
+
+  </div>
+  <div class="inventory2">
+    <img src="./images/pics/candleinventory.png" alt="">
+
+  </div>
+    
+    <!-- External JavaScript -->
+    <script src="/main.js" type="module"></script>
+</body>
+</html>
