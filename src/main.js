@@ -22,8 +22,272 @@ from './js/objects.js';
 import { createblood } from './js/effects.js';
 import { loadWall } from './js/design.js';
 
-import { FPSControls } from './js/FPSControls'; // Import FPSControls from separate file
+
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+
+
+
+
+
+// --- FPSControls Class Definition ---
+class FPSControls {
+  constructor(camera, scene, pointerLockControls) {
+    this.camera = camera;
+    this.scene = scene;
+    this.pointerLockControls = pointerLockControls;
+
+    // Ensure pointerLockControls is initialized and object is set
+    if (!this.pointerLockControls?.object) {
+      console.error("PointerLockControls object is not initialized correctly.");
+      return;
+    }
+
+    this.velocity = new THREE.Vector3(0, 0, 0);
+    this.acceleration = new THREE.Vector3(250, 2130, 250);
+    this.deceleration = new THREE.Vector3(-10, -55, -10); // Gravity effect
+    this.move = { forward: false, backward: false, left: false, right: false };
+    this.isStanding = true;
+    this.isEditMode = false; // Track whether we are in edit mode
+
+    // Initialize Audio Listener and Sounds
+    this.listener = new THREE.AudioListener();
+    this.camera.add(this.listener); // Attach the listener to the camera
+
+    // Walking sounds
+    this.walkSound = new THREE.Audio(this.listener);
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load('/sounds/Sound Effects - Walking on Tile Floor.mp3', (buffer) => {
+      this.walkSound.setBuffer(buffer);
+      this.walkSound.setLoop(true);
+      this.walkSound.setVolume(0.5);
+    });
+
+    this.secondWalkSound = new THREE.Audio(this.listener);
+    audioLoader.load('/sounds/Walking Through Water Sound Effect.mp3', (buffer) => {
+      this.secondWalkSound.setBuffer(buffer);
+      this.secondWalkSound.setLoop(true);
+      this.secondWalkSound.setVolume(0.5);
+    });
+
+    // Add event listeners for key events
+    document.addEventListener('keydown', (e) => this._onKeyDown(e), false);
+    document.addEventListener('keyup', (e) => this._onKeyUp(e), false);
+
+    // Buttons for switching modes
+    const firstPersonBtn = document.getElementById('firstPersonBtn');
+    firstPersonBtn.addEventListener('click', () => this.enterFirstPersonMode());
+
+    const editModeBtn = document.getElementById('editModeBtn');
+    editModeBtn.addEventListener('click', () => this.enterEditMode());
+
+    // Scroll event listener for zooming in edit mode
+    document.addEventListener('wheel', (event) => this.handleScroll(event), { passive: false });
+
+    // Create the target marker in the game
+    this.createTargetMarker();
+  }
+
+  createTargetMarker() {
+    const targetPosition = new THREE.Vector3(-61, 4, -40); // Target position for marker
+  
+    const geometry = new THREE.SphereGeometry(0.2, 32, 32); // Small sphere with radius 0.2
+    const material = new THREE.MeshBasicMaterial({ 
+      color: 0xff0000, // Red color
+      transparent: true, // Enable transparency
+      opacity: 0.0 // Set opacity to 0 (invisible)
+    });
+    const marker = new THREE.Mesh(geometry, material);
+  
+    marker.position.copy(targetPosition);
+  
+    this.scene.add(marker);
+  }
+
+  enterFirstPersonMode() {
+    this.pointerLockControls.lock(); // Lock the pointer for first-person mode
+    this.isEditMode = false;
+  }
+
+  enterEditMode() {
+    this.isEditMode = true;
+    this.velocity.set(0, 0, 0); // Reset velocity for flying mode
+  }
+
+  handleScroll(event) {
+    event.preventDefault(); // Prevent page scrolling
+  }
+
+  _onKeyDown(event) {
+    switch (event.code) {
+      case 'KeyW': this.move.forward = true; break;
+      case 'KeyS': this.move.backward = true; break;
+      case 'KeyA': this.move.left = true; break;
+      case 'KeyD': this.move.right = true; break;
+      case 'Space':
+        if (this.isEditMode) {
+          this.move.up = true;
+        } else if (this.isStanding) {
+          this.velocity.y += 15; // Jump height
+          this.isStanding = false;
+        }
+        break;
+      case 'ShiftLeft':
+        if (this.isEditMode) this.move.down = true;
+        break;
+    }
+  }
+
+  _onKeyUp(event) {
+    switch (event.code) {
+      case 'KeyW': this.move.forward = false; break;
+      case 'KeyS': this.move.backward = false; break;
+      case 'KeyA': this.move.left = false; break;
+      case 'KeyD': this.move.right = false; break;
+      case 'Space': this.move.up = false; break;
+      case 'ShiftLeft': this.move.down = false; break;
+    }
+  }
+
+  update(delta) {
+    const targetPosition = new THREE.Vector3(-61, 4, -40); // Target position
+    const tolerance = 4; // Tolerance for target position proximity
+
+    const position = this.pointerLockControls.object.position;
+
+    if (
+      Math.abs(position.x - targetPosition.x) < tolerance &&
+      Math.abs(position.y - targetPosition.y) < tolerance &&
+      Math.abs(position.z - targetPosition.z) < tolerance
+    ) {
+      this.gameFinished(); // Trigger game finish if near the target
+      return;
+    }
+
+    const speedMultiplier = this.isEditMode ? 10 : 1;
+    const frameDeceleration = new THREE.Vector3(
+      this.velocity.x * this.deceleration.x,
+      this.deceleration.y,
+      this.velocity.z * this.deceleration.z
+    );
+    frameDeceleration.multiplyScalar(delta);
+    this.velocity.add(frameDeceleration);
+
+    const direction = new THREE.Vector3();
+    this.camera.getWorldDirection(direction);
+
+    const forward = new THREE.Vector3(direction.x, 0, direction.z).normalize();
+    const right = new THREE.Vector3().crossVectors(this.camera.up, forward).normalize();
+    const up = this.camera.up; // Up direction for flying (vertical movement)
+
+    if (this.move.forward) this.velocity.addScaledVector(forward, this.acceleration.z * delta * speedMultiplier);
+    if (this.move.backward) this.velocity.addScaledVector(forward, -this.acceleration.z * delta * speedMultiplier);
+    if (this.move.left) this.velocity.addScaledVector(right, this.acceleration.x * delta * speedMultiplier);
+    if (this.move.right) this.velocity.addScaledVector(right, -this.acceleration.x * delta * speedMultiplier);
+    if (this.move.up) this.velocity.addScaledVector(up, this.acceleration.y * delta * speedMultiplier);
+    if (this.move.down) this.velocity.addScaledVector(up, -this.acceleration.y * delta * speedMultiplier);
+
+    const raycaster = new THREE.Raycaster(position, forward, 0, 1.5); // Raycasting for collisions
+    const intersects = raycaster.intersectObjects(this.scene.children, true);
+
+    if (this.isEditMode) {
+      this.velocity.y = 0; // Disable gravity effect
+      position.addScaledVector(this.velocity, delta);
+    } else {
+      position.addScaledVector(this.velocity, delta);
+      if (position.y < 5) {
+        this.velocity.y = 0;
+        position.y = 5;
+        this.isStanding = true;
+      }
+
+      if (intersects.length > 0) {
+        position.sub(this.velocity.clone().multiplyScalar(delta)); // Prevent clipping into walls
+        this.velocity.set(0, this.velocity.y, 0); // Stop movement on collision axis
+      }
+    }
+
+    // Walking sounds
+    if (this.move.forward || this.move.backward || this.move.left || this.move.right) {
+      if (!this.walkSound.isPlaying) this.walkSound.play();
+      if (!this.secondWalkSound.isPlaying) this.secondWalkSound.play();
+      position.y += Math.sin(Date.now() / 100) * 0.090; // Bumping effect
+    } else {
+      if (this.walkSound.isPlaying) this.walkSound.stop();
+      if (this.secondWalkSound.isPlaying) setTimeout(() => this.secondWalkSound.stop(), 1000);
+    }
+  }
+
+  gameFinished() {
+    // Create a fade-out effect when the game finishes
+    const whiteScreen = document.createElement('div');
+    whiteScreen.style.position = 'absolute';
+    whiteScreen.style.top = 0;
+    whiteScreen.style.left = 0;
+    whiteScreen.style.width = '100vw';
+    whiteScreen.style.height = '100vh';
+    whiteScreen.style.backgroundColor = 'black';
+    whiteScreen.style.zIndex = 1000;
+    whiteScreen.style.opacity = 0; // Fade-in effect
+    whiteScreen.style.transition = 'opacity 35s ease-out';
+    document.body.appendChild(whiteScreen);
+
+    const imageElement = document.createElement('img');
+    imageElement.style.position = 'absolute';
+    imageElement.style.top = '50%';
+    imageElement.style.left = '50%';
+    imageElement.style.transform = 'translate(-50%, -50%)';
+    imageElement.style.width = 'auto';
+    imageElement.style.height = 'auto';
+    imageElement.style.zIndex = 1100;
+    imageElement.style.opacity = 0;
+    imageElement.style.transition = 'opacity 35s ease-out';
+    imageElement.style.pointerEvents = 'none';
+    document.body.appendChild(imageElement);
+
+    // Play sound
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const soundWater = new Audio('/sounds/The Lobotomy.mp3');
+    const track = audioContext.createMediaElementSource(soundWater);
+    const gainNode = audioContext.createGain();
+    track.connect(gainNode).connect(audioContext.destination);
+    gainNode.gain.value = 0;
+
+    soundWater.playbackRate = 2.0;
+
+    // Fade effects
+    setTimeout(() => {
+      whiteScreen.style.opacity = 1;
+      imageElement.style.opacity = 1;
+      soundWater.play();
+      const fadeInDuration = 1000;
+      const currentTime = audioContext.currentTime;
+      gainNode.gain.linearRampToValueAtTime(1, currentTime + fadeInDuration / 1000);
+    }, 2000);
+
+    // Restart game on CTRL + R
+    document.addEventListener('keydown', (event) => {
+      if (event.ctrlKey && event.key === 'r') {
+        window.location.reload(); // Reload the page
+      }
+    });
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 //================================================================
@@ -1722,6 +1986,7 @@ function animate() {
   } else {
     orbitControls.update(); // Update orbit controls
   }
+
 
   // Add the flickering candlelight effect
   if (pointLight) {
