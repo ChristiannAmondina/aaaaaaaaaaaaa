@@ -8,7 +8,7 @@ const loader = new GLTFLoader();
 export function createChair(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/day_20__old_office_chair.glb', // Path to your .glb model
+            '/images/models/day_20__old_office_chair.glb', // Path to your .glb model
             (gltf) => {
                 const chair = gltf.scene;
                 chair.position.set(-38, 4, -34); // Set chair position
@@ -33,7 +33,7 @@ export function createChair(scene) {
 export function createdesk(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/office_desk.glb', // Path to your .glb model
+            '/images/models/office_desk.glb', // Path to your .glb model
             (gltf) => {
                 const desk = gltf.scene;
                 desk.position.set(40, 0.050, 33); // Set table position
@@ -56,7 +56,7 @@ export function createdesk(scene) {
 export function createaircon(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/old_aircon.glb', // Path to your .glb model
+            '/images/models/old_aircon.glb', // Path to your .glb model
             (gltf) => {
                 const aircon = gltf.scene;
                 aircon.position.set(34, 9, 28); // Set table position
@@ -78,7 +78,7 @@ export function createaircon(scene) {
 export function createflower(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/flowering_cannabis_plant_in_a_pot.glb', // Path to your .glb model
+            '/images/models/flowering_cannabis_plant_in_a_pot.glb', // Path to your .glb model
             (gltf) => {
                 const flower = gltf.scene;
                 flower.position.set(26.4, 0, 35); // Set table position
@@ -100,7 +100,7 @@ export function createflower(scene) {
 export function createframe(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/picture_frame.glb', // Path to your .glb model
+            '/images/models/picture_frame.glb', // Path to your .glb model
             (gltf) => {
                 const frame = gltf.scene;
                 frame.position.set(46, 0, 43); // Set table position
@@ -122,7 +122,7 @@ export function createframe(scene) {
 export function createdispenser(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/water_dispenser.glb', // Path to your .glb model
+            '/images/models/water_dispenser.glb', // Path to your .glb model
             (gltf) => {
                 const dispenser = gltf.scene;
                 dispenser.position.set(28, 4, 30); // Set table position
@@ -145,7 +145,7 @@ export function createdispenser(scene) {
 export function created_design1(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/isometric_office.glb', 
+            '/images/models/isometric_office.glb', 
             (gltf) => {
                 const design1 = gltf.scene;
                 design1.position.set(10, 0, -30); 
@@ -168,7 +168,7 @@ export function created_design1(scene) {
 export function created_design2(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/office_of_a_crane_operator.glb', 
+            '/images/models/office_of_a_crane_operator.glb', 
             (gltf) => {
                 const design2 = gltf.scene;
                 design2.position.set(-75, -1, 40); 
@@ -191,7 +191,7 @@ export function created_design2(scene) {
 export function created_design3(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/building_hallway.glb', 
+            '/images/models/building_hallway.glb', 
             (gltf) => {
                 const design3 = gltf.scene;
                 design3.position.set(-115, -39, -40); 
@@ -215,7 +215,7 @@ export function created_design3(scene) {
 export function created_floor(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/checkered_tile_floor.glb',
+            '/images/models/checkered_tile_floor.glb',
             (gltf) => {
                 const floor = gltf.scene;
 
@@ -251,7 +251,7 @@ export function created_floor(scene) {
 export function created_hallchairs(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/waiting_chair.glb', 
+            '/images/models/waiting_chair.glb', 
             (gltf) => {
                 const hallchairs = gltf.scene;
                 hallchairs.position.set(-15, -1, 47); 
@@ -274,7 +274,7 @@ export function created_hallchairs(scene) {
 export function created_cheaproom(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/low_poly_90s_office_cubicle.glb', 
+            '/images/models/low_poly_90s_office_cubicle.glb', 
             (gltf) => {
                 const cheaproom = gltf.scene;
                 cheaproom.position.set(39, -1, 10); 
@@ -297,7 +297,7 @@ export function created_cheaproom(scene) {
 export function created_fence(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/simple_metal_fence.glb', 
+            '/images/models/simple_metal_fence.glb', 
             (gltf) => {
                 const fence = gltf.scene;
                 fence.position.set(-45, 7, -40); 
@@ -322,7 +322,7 @@ export function created_fence(scene) {
 export function created_statue(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/statue_of_edward_snowden.glb', 
+            '/images/models/statue_of_edward_snowden.glb', 
             (gltf) => {
                 const fence = gltf.scene;
                 fence.position.set(29, 7, -28); 
@@ -350,7 +350,7 @@ export function created_statue(scene) {
 export function created_nearstatue(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/water_dispenser.glb', 
+            '/images/models/water_dispenser.glb', 
             (gltf) => {
                 const nearstatue = gltf.scene;
                 nearstatue.position.set(28, 6, -18); // Set table position
@@ -373,7 +373,7 @@ export function created_nearstatue(scene) {
 export function created_ceiling(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/abandoned_office_ceiling.glb', 
+            '/images/models/abandoned_office_ceiling.glb', 
             (gltf) => {
                 const ceiling = gltf.scene;
                 ceiling.position.set(-149, 20, 100); 

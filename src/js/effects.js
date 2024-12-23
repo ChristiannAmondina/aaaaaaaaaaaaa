@@ -8,7 +8,7 @@ const loader = new GLTFLoader();
 export function createblood(scene) {
     return new Promise((resolve, reject) => {
         loader.load(
-            'images/models/small_blood_splatter.glb', // Path to your .glb model
+            '/images/models/small_blood_splatter.glb', // Path to your .glb model
             (gltf) => {
                 const blood = gltf.scene;
                 blood.position.set(25.2, 4, 36); // Set chair position

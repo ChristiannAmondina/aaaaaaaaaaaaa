@@ -19,7 +19,7 @@ export class FPSControls {
     // First walking sound
     this.walkSound = new THREE.Audio(this.listener);
     const audioLoader = new THREE.AudioLoader();
-    audioLoader.load('sounds/Sound Effects - Walking on Tile Floor.mp3', (buffer) => {
+    audioLoader.load('/sounds/Sound Effects - Walking on Tile Floor.mp3', (buffer) => {
       this.walkSound.setBuffer(buffer);
       this.walkSound.setLoop(true); // Set to loop if desired
       this.walkSound.setVolume(0.5); // Adjust volume as needed
@@ -27,7 +27,7 @@ export class FPSControls {
 
     // Second walking sound
     this.secondWalkSound = new THREE.Audio(this.listener);
-    audioLoader.load('sounds/Walking Through Water Sound Effect.mp3', (buffer) => {
+    audioLoader.load('/sounds/Walking Through Water Sound Effect.mp3', (buffer) => {
       this.secondWalkSound.setBuffer(buffer);
       this.secondWalkSound.setLoop(true);
       this.secondWalkSound.setVolume(0.5); // Adjust volume as needed
@@ -238,7 +238,7 @@ export class FPSControls {
   
     // Create the image element
     const imageElement = document.createElement('img');
-    imageElement.src = 'images/texture/test.jpg'; // Path to your image
+    imageElement.src = '/images/texture/test.jpg'; // Path to your image
     imageElement.style.position = 'absolute';
     imageElement.style.top = '50%';
     imageElement.style.left = '50%';
@@ -257,7 +257,7 @@ export class FPSControls {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
   
     // Load and configure the "Running in Water" sound
-    const soundWater = new Audio('sounds/The Lobotomy.mp3');
+    const soundWater = new Audio('/sounds/The Lobotomy.mp3');
     const track = audioContext.createMediaElementSource(soundWater);
     const gainNode = audioContext.createGain();
     track.connect(gainNode).connect(audioContext.destination);

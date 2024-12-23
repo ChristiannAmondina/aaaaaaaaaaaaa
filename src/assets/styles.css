@@ -61,7 +61,7 @@ body.pointerLockActive {
   height: 100%;
   background-size: cover;
   background-repeat: no-repeat;
-  background-image: url('images/pics/bloodscreen.png');
+  background-image: url('/images/pics/bloodscreen.png');
   filter: contrast(41);
   mix-blend-mode: multiply;
 

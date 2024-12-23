@@ -147,7 +147,7 @@ function playAudio() {
 //================================================================
 
 // Front Wall
-const frontWallTexture = textureLoader.load('images/texture/tile.jpg'); // Front wall texture
+const frontWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Front wall texture
 frontWallTexture.wrapS = THREE.RepeatWrapping;
 frontWallTexture.wrapT = THREE.RepeatWrapping;
 frontWallTexture.repeat.set(30, 10); // Scale texture to fit
@@ -165,7 +165,7 @@ frontWall.receiveShadow = true;
 scene.add(frontWall);
 
 // Back Wall
-const backWallTexture = textureLoader.load('images/texture/tile.jpg'); // Back wall texture
+const backWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Back wall texture
 backWallTexture.wrapS = THREE.RepeatWrapping;
 backWallTexture.wrapT = THREE.RepeatWrapping;
 backWallTexture.repeat.set(30, 10); // Adjust the repeat scale
@@ -183,7 +183,7 @@ backWall.receiveShadow = true;
 scene.add(backWall);
 
 // Left Wall
-const leftWallTexture = textureLoader.load('images/texture/tile.jpg'); // Left wall texture
+const leftWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Left wall texture
 leftWallTexture.wrapS = THREE.RepeatWrapping;
 leftWallTexture.wrapT = THREE.RepeatWrapping;
 leftWallTexture.repeat.set(30, 10); // Adjust the repeat scale
@@ -203,7 +203,7 @@ leftWall.receiveShadow = true;
 scene.add(leftWall);
 
 // Left Wall 1
-const left1WallTexture = textureLoader.load('images/texture/tile.jpg'); // Left wall texture
+const left1WallTexture = textureLoader.load('/images/texture/tile.jpg'); // Left wall texture
 left1WallTexture.wrapS = THREE.RepeatWrapping;
 left1WallTexture.wrapT = THREE.RepeatWrapping;
 left1WallTexture.repeat.set(30, 10); // Adjust the repeat scale
@@ -223,7 +223,7 @@ left1Wall.receiveShadow = true;
 scene.add(left1Wall);
 
 // Right Wall
-const rightWallTexture = textureLoader.load('images/texture/tile.jpg'); // Right wall texture
+const rightWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Right wall texture
 rightWallTexture.wrapS = THREE.RepeatWrapping;
 rightWallTexture.wrapT = THREE.RepeatWrapping;
 rightWallTexture.repeat.set(30, 10); // Adjust the repeat scale
@@ -266,7 +266,7 @@ scene.add(ceiling);
 */
 
 // Floor
-const floorTexture = textureLoader.load('images/texture/tile.jpg'); // Floor texture (same texture as ceiling)
+const floorTexture = textureLoader.load('/images/texture/tile.jpg'); // Floor texture (same texture as ceiling)
 floorTexture.wrapS = THREE.RepeatWrapping;
 floorTexture.wrapT = THREE.RepeatWrapping;
 floorTexture.repeat.set(30, 10); // Adjust the repeat scale
@@ -421,7 +421,7 @@ function triggerRedFlicker() {
  
 }
 
-const attackSound = new Audio('sounds/Call of Duty Zombie Scream - Sound Effect  ProSounds.mp3'); // Add your attack sound file here
+const attackSound = new Audio('/sounds/Call of Duty Zombie Scream - Sound Effect  ProSounds.mp3'); // Add your attack sound file here
 // Increase the volume and ensure it plays strongly
 attackSound.volume = 1; // Max volume
 attackSound.playbackRate = 2; // Slightly increase playback speed for intensi
@@ -585,7 +585,7 @@ function updateZombie() {
 //================================================================
 
 let gameOverState = false; // Track the game over state
-const gameoverSound = new Audio('sounds/Game Over Sound Effect - SFX.mp3');  // Replace with actual path
+const gameoverSound = new Audio('/sounds/Game Over Sound Effect - SFX.mp3');  // Replace with actual path
 
 function gameOver() {
   // Stop all animations
@@ -614,7 +614,7 @@ setTimeout(() => {
 
   // Create the image element
   const gameOverImage = document.createElement('img');
-  gameOverImage.src = 'images/pics/bloodscreen.png'; // Correct image path
+  gameOverImage.src = '/images/pics/bloodscreen.png'; // Correct image path
   gameOverImage.style.position = 'absolute';
   gameOverImage.style.position = 'fixed';
   gameOverImage.style.top = '0';
@@ -785,7 +785,7 @@ function wanderRandomly() {
 const loader = new GLTFLoader();
 let zombie, mixer;
 
-loader.load('images/models/zombie_monster_slasher_necromorph.glb', (gltf) => {
+loader.load('/images/models/zombie_monster_slasher_necromorph.glb', (gltf) => {
   zombie = gltf.scene;
   zombie.scale.set(5, 5, 5);
   zombie.position.set(-20, 0, -20); // Starting position of the zombie
@@ -872,7 +872,7 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-const zombieSound = new Audio('sounds/Zombie sound effect.mp3');
+const zombieSound = new Audio('/sounds/Zombie sound effect.mp3');
 zombieSound.loop = true; // Make sure the sound loops to continuously fade in/out
 
 function zombieFollowPlayer() {
@@ -960,7 +960,7 @@ let pointLight; // For candle-like light
 
 // Load the .glb model for the candle
 loader.load(
-  'images/models/copper_candlestick.glb',
+  '/images/models/copper_candlestick.glb',
   function (gltf) {
     lightObject = gltf.scene;
 
@@ -1010,15 +1010,15 @@ let hasUsedKey = false;  // Flag to check if the key has been used
 let boundDoor = null;  // The specific door this key is bound to
 
 // Sound effect for collecting the key
-const keyCollectSound = new Audio('sounds/key.mp3');  // Replace with actual path
+const keyCollectSound = new Audio('/sounds/key.mp3');  // Replace with actual path
 
 // Sound effect for opening the door
-const doorOpenSound = new Audio('sounds/Door.mp3');  // Replace with actual path
+const doorOpenSound = new Audio('/sounds/Door.mp3');  // Replace with actual path
 doorOpenSound.volume = 1.0;  // Set volume to maximum
 
 // Load the .glb model for the key
 let keyObject;
-loader.load('images/models/metal_credit_card.glb', function (gltf) {
+loader.load('/images/models/metal_credit_card.glb', function (gltf) {
   keyObject = gltf.scene; // The loaded key model
   keyObject.position.set(-35, 3, 19);
   keyObject.scale.set(0.4, 0.4, 0.4); // Adjust scale if needed
@@ -1113,7 +1113,7 @@ function onKeyCollected() {
 //================================================================
 
 // Load the texture for the door
-const doorTexture = textureLoader.load('images/texture/moderndoor.jpg'); // Set your image path
+const doorTexture = textureLoader.load('/images/texture/moderndoor.jpg'); // Set your image path
 
 // Set the texture to repeat
 doorTexture.wrapS = THREE.RepeatWrapping;  // Repeat the texture on the X-axis
@@ -1276,7 +1276,7 @@ function showNoKeyNote() {
 let sparkceiling, material;
 
 // Load the GLB model of the ceiling light
-loader.load('images/models/', (gltf) => {
+loader.load('/images/models/', (gltf) => {
   sparkceiling = gltf.scene;
   sparkceiling.scale.set(17, 15, 15); // Set the scale of the ceiling light
   sparkceiling.position.set(34, 18.510, -14); // Set the position of the ceiling light
@@ -1355,11 +1355,11 @@ loader.load('images/models/', (gltf) => {
 import TWEEN from '@tweenjs/tween.js';
 
 // Initialize audio elements for each action with max volume
-const wrongPasswordSound = new Audio('sounds/Sound effect WRONG ANSWER.mp3');
-const correctPasswordSound = new Audio('sounds/Correct answer Sound effect.mp3');
-const typingSound = new Audio('sounds/enter button on a keyboard sound effect (royalty free).mp3');
-const deviceInteractionSound = new Audio('sounds/90s PC boot sequence with sound HD.mp3');
-const doorOpenSound1 = new Audio('sounds/Faction Vault Door Open (Fortnite Sound) - Sound Effect for editing.mp3');  // Path to the door open sound effect
+const wrongPasswordSound = new Audio('/sounds/Sound effect WRONG ANSWER.mp3');
+const correctPasswordSound = new Audio('/sounds/Correct answer Sound effect.mp3');
+const typingSound = new Audio('/sounds/enter button on a keyboard sound effect (royalty free).mp3');
+const deviceInteractionSound = new Audio('/sounds/90s PC boot sequence with sound HD.mp3');
+const doorOpenSound1 = new Audio('/sounds/Faction Vault Door Open (Fortnite Sound) - Sound Effect for editing.mp3');  // Path to the door open sound effect
 
 
 
@@ -1381,7 +1381,7 @@ let inputDiv;  // Password input div
 let playerPosition;  // Store player's position for distance check
 let deviceInteracted = false;  // To track if the device has been interacted with already
 
-const customDoorTexture = textureLoader.load('images/texture/glass.jpg');  // Set your image path
+const customDoorTexture = textureLoader.load('/images/texture/glass.jpg');  // Set your image path
 
 // Set texture wrapping
 customDoorTexture.wrapS = THREE.RepeatWrapping;  // Repeat the texture on the X-axis
@@ -1415,7 +1415,7 @@ scene.add(texturedPasswordDoor);
 
 
 
-const modelPath = 'images/models/simple_mini-atm.glb';  // Path to your .glb file
+const modelPath = '/images/models/simple_mini-atm.glb';  // Path to your .glb file
 
 // Initialize passwordDevice as null initially
 passwordDevice = null;
@@ -1784,35 +1784,35 @@ function animate() {
   
 //SPAWN POINT-------------------------------------------------------------------
 // First wall (with texture)
-loadWall(scene, { x: 45, y: 2, z: 25 }, 'images/texture/tile.jpg'); // Apply texture to the first wall
+loadWall(scene, { x: 45, y: 2, z: 25 }, '/images/texture/tile.jpg'); // Apply texture to the first wall
 
 // Second wall (with 180° rotation and texture)
-loadWall(scene, { x: 20, y: 2, z: 30 }, 'images/texture/tile.jpg').then(wallLeft => {
+loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {
   wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall
                      
   wallLeft.scale.set(0.453, 1, 2); // Shrink width to create space for the door
   wallLeft.position.set(24, 2, 33.6); // Adjust position to the left side
 });
 //left
-loadWall(scene, { x: 20, y: 2, z: 20 }, 'images/texture/tile.jpg').then(wallLeft => {
+loadWall(scene, { x: 20, y: 2, z: 20 }, '/images/texture/tile.jpg').then(wallLeft => {
   wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall                 
   wallLeft.scale.set(0.1, 0.5, 2); // Shrink width to create space for the door
   wallLeft.position.set(24, 2, 50); // Adjust position to the left side
 });
 //top
-loadWall(scene, { x: 3, y: 2, z: 3 }, 'images/texture/tile.jpg').then(wallRight => {
+loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/tile.jpg').then(wallRight => {
   wallRight.rotation.y = Math.PI / 2; // Rotate right segment of the wall
   wallRight.scale.set(0.3, 0.4, 2); // Shrink width to create space for the door
   wallRight.position.set(24, 16, 45); // Adjust position to the right side
 });
 //ceiling room
-loadWall(scene, { x: 3, y: 2, z: 3 }, 'images/texture/tile.jpg').then(wallRight => {
+loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/tile.jpg').then(wallRight => {
   wallRight.rotation.x = Math.PI / 2; // Rotate right segment of the wall
   wallRight.scale.set(0.8, 1, 0.5); // Shrink width to create space for the door
   wallRight.position.set(42, 13.4, 45); // Adjust position to the right side
 });
 //carpet
-loadWall(scene, { x: 3, y: 2, z: 3 }, 'images/texture/carpet2.jpg').then(wallRight => {
+loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/carpet2.jpg').then(wallRight => {
   wallRight.rotation.x = Math.PI / 2; // Rotate right segment of the wall
   wallRight.scale.set(0.4, 0.5, 0.2); // Shrink width to create space for the door
   wallRight.position.set(37, -0, 35); // Adjust position to the right side
@@ -1821,14 +1821,14 @@ loadWall(scene, { x: 3, y: 2, z: 3 }, 'images/texture/carpet2.jpg').then(wallRig
 //OFFICE AREA-------------------------------------------------------------------
 
 //right wall second path
-loadWall(scene, { x: 20, y: 2, z: 30 }, 'images/texture/tile.jpg').then(wallLeft => {
+loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {
   wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall
                      
   wallLeft.scale.set(1.2, 1, 2); // Shrink width to create space for the door
   wallLeft.position.set(24, 2, 17); // Adjust position to the left side
 });
 //left wall second path
-loadWall(scene, { x: 20, y: 2, z: 30 }, 'images/texture/tile.jpg').then(wallLeft => {
+loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {
   wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall
                      
   wallLeft.scale.set(0.5, 1, 2); // Shrink width to create space for the door
@@ -1836,18 +1836,18 @@ loadWall(scene, { x: 20, y: 2, z: 30 }, 'images/texture/tile.jpg').then(wallLeft
 });
 
 //top second path
-loadWall(scene, { x: 3, y: 2, z: 3 }, 'images/texture/tile.jpg').then(wallRight => {
+loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/tile.jpg').then(wallRight => {
   wallRight.rotation.y = Math.PI / 2; // Rotate right segment of the wall
   wallRight.scale.set(2, 0.4, 2); // Shrink width to create space for the door
   wallRight.position.set(24, 22, -11); // Adjust position to the right side
 });
 //entrance wall
-loadWall(scene, { x: 20, y: 2, z: 30 }, 'images/texture/tile.jpg').then(wallLeft => {                
+loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {                
   wallLeft.scale.set(0.453, 1, 2); // Shrink width to create space for the door
   wallLeft.position.set(22, 2, 23.6); // Adjust position to the left side
 });
 //entrance wall 2
-loadWall(scene, { x: 20, y: 2, z: 30 }, 'images/texture/tile.jpg').then(wallLeft => {   
+loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {   
                
   wallLeft.scale.set(0.5, 1, 2); // Shrink width to create space for the door
   wallLeft.position.set(14, 2, -30); // Adjust position to the left side
