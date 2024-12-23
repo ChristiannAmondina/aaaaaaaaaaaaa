@@ -369,7 +369,7 @@ fogFolder.close(); // Open the fog folder
 //================================================================
 // Camera Setup
 //================================================================
-camera.position.set(37, 6, 11); // Set camera position
+camera.position.set(37, 116, 11); // Set camera position
 //30, 100, 5
 // Setup OrbitControls for environment editing
 const orbitControls = new OrbitControls(camera, renderer.domElement);
