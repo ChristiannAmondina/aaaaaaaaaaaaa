@@ -1972,8 +1972,6 @@ function playDeviceInteractionSound() {
 
 
 
-
-
 //================================================================
 // Animation Loop
 //================================================================
@@ -2009,10 +2007,14 @@ function animate() {
     }
 
     // Ensure pointer lock is engaged before updating first-person controls
-    if (pointerLockControls.isLocked) {
-      fpsControls.update(delta); // Update first-person controls if pointer is locked
+    if (pointerLockControls && pointerLockControls.object) {
+      if (pointerLockControls.isLocked) {
+        fpsControls.update(delta); // Update first-person controls if pointer is locked
+      } else {
+        pointerLockControls.lock(); // Lock pointer if not already locked
+      }
     } else {
-      pointerLockControls.lock(); // Lock pointer if not already locked
+      console.error("PointerLockControls is not initialized correctly");
     }
   } else {
     orbitControls.update(); // Update orbit controls
@@ -2026,12 +2028,12 @@ function animate() {
   // Handle animation and render the scene
   renderer.render(scene, camera);
 
-  // Add the flickering candlelight effect
+  // Add the flickering candlelight effect again (if required)
   if (pointLight) {
     pointLight.intensity = Math.random() * 0.5 + 0.5; // Flickering effect
   }
 
-  // Handle animation and render the scene
+  // Handle animation and render the scene again
   renderer.render(scene, camera);
 }
 
