@@ -28,6 +28,119 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 
 
+//================================================================
+// Scene Setup
+//================================================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x2f303d); // Default white background
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('webgl-container').appendChild(renderer.domElement);
+
+
+//================================================================
+// TextureLoader
+//================================================================
+const textureLoader = new THREE.TextureLoader();
+
+
+//================================================================
+// Fog Setup
+//================================================================
+//0.0080
+let fogDensity = 0; // Adjusted density for fog
+let fogColor = new THREE.Color(0xaaaaaa); // Set initial fog color (light gray)
+scene.fog = new THREE.FogExp2(fogColor, fogDensity); // Exponential fog (color, density)
+
+//================================================================
+// Lighting Setup
+//================================================================
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.1); // Ambient light to illuminate all objects
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0x635900, 0.010); // White directional light
+directionalLight.position.set(-15.36, -50, 50).normalize(); // Light source position
+scene.add(directionalLight);
+
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // For softer shadows
+// Create a DirectionalLight with yellow color and intensity 1
+
+
+
+
+
+
+
+
+
+const localizedDirectionalLight = new THREE.DirectionalLight(0xffcc00, 1.0);
+
+// Position it in your specific area
+localizedDirectionalLight.position.set(-15.36, -50, 50); // Position it at (-115, -39, -40)
+
+// Set the light's target to the area you want to illuminate
+localizedDirectionalLight.target.position.set(29, 7, -28); // Focus it downward toward the ground
+
+// Enable shadows for more localized effects
+localizedDirectionalLight.castShadow = true;
+localizedDirectionalLight.shadow.mapSize.width = 1024;  // Higher value for better resolution
+localizedDirectionalLight.shadow.mapSize.height = 1024;
+localizedDirectionalLight.shadow.camera.near = 0.1;  // Set the shadow camera near
+localizedDirectionalLight.shadow.camera.far = 500;  // Set the shadow camera far (to control distance)
+
+// Add the light to the scene
+scene.add(localizedDirectionalLight);
+scene.add(localizedDirectionalLight.target);
+
+
+//================================================================
+// Sound Setup with Auto-Play Attempt
+//================================================================
+let audioContext;
+
+document.addEventListener('click', function() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  // Resume the AudioContext if it's suspended
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+
+  // Now you can safely start playing audio
+  playAudio();
+});
+
+// Function to play three audio files at once, looping indefinitely
+function playAudio() {
+  const audio1 = new Audio('sounds/).');
+  const audio2 = new Audio('sounds/).'); // Second audio file
+  const audio3 = new Audio('sounds/'); // Third audio file
+
+  // Set the volume of the third audio to be lower than the others
+  audio3.volume = 0.6; // Adjust this value (0.0 to 1.0) to control the volume of the third sound
+
+  // Enable looping for all three audio files
+  audio1.loop = true;
+  audio2.loop = true;
+  audio3.loop = true;
+
+  // Play all three sounds at once
+  audio1.play();
+  audio2.play();
+  audio3.play();
+}
+
+//================================================================
+// Call onPlayerNearKey or onKeyCollected based on your game logic
+//================================================================
+
+
+
+
+
 
 
 // --- FPSControls Class Definition ---
@@ -282,136 +395,6 @@ class FPSControls {
     });
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//================================================================
-// Scene Setup
-//================================================================
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x2f303d); // Default white background
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.getElementById('webgl-container').appendChild(renderer.domElement);
-
-
-//================================================================
-// TextureLoader
-//================================================================
-const textureLoader = new THREE.TextureLoader();
-
-
-//================================================================
-// Fog Setup
-//================================================================
-//0.0080
-let fogDensity = 0; // Adjusted density for fog
-let fogColor = new THREE.Color(0xaaaaaa); // Set initial fog color (light gray)
-scene.fog = new THREE.FogExp2(fogColor, fogDensity); // Exponential fog (color, density)
-
-//================================================================
-// Lighting Setup
-//================================================================
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.1); // Ambient light to illuminate all objects
-scene.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(0x635900, 0.010); // White directional light
-directionalLight.position.set(-15.36, -50, 50).normalize(); // Light source position
-scene.add(directionalLight);
-
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; // For softer shadows
-// Create a DirectionalLight with yellow color and intensity 1
-
-
-
-
-
-
-
-
-
-const localizedDirectionalLight = new THREE.DirectionalLight(0xffcc00, 1.0);
-
-// Position it in your specific area
-localizedDirectionalLight.position.set(-15.36, -50, 50); // Position it at (-115, -39, -40)
-
-// Set the light's target to the area you want to illuminate
-localizedDirectionalLight.target.position.set(29, 7, -28); // Focus it downward toward the ground
-
-// Enable shadows for more localized effects
-localizedDirectionalLight.castShadow = true;
-localizedDirectionalLight.shadow.mapSize.width = 1024;  // Higher value for better resolution
-localizedDirectionalLight.shadow.mapSize.height = 1024;
-localizedDirectionalLight.shadow.camera.near = 0.1;  // Set the shadow camera near
-localizedDirectionalLight.shadow.camera.far = 500;  // Set the shadow camera far (to control distance)
-
-// Add the light to the scene
-scene.add(localizedDirectionalLight);
-scene.add(localizedDirectionalLight.target);
-
-
-//================================================================
-// Sound Setup with Auto-Play Attempt
-//================================================================
-let audioContext;
-
-document.addEventListener('click', function() {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  // Resume the AudioContext if it's suspended
-  if (audioContext.state === 'suspended') {
-    audioContext.resume();
-  }
-
-  // Now you can safely start playing audio
-  playAudio();
-});
-
-// Function to play three audio files at once, looping indefinitely
-function playAudio() {
-  const audio1 = new Audio('sounds/).');
-  const audio2 = new Audio('sounds/).'); // Second audio file
-  const audio3 = new Audio('sounds/'); // Third audio file
-
-  // Set the volume of the third audio to be lower than the others
-  audio3.volume = 0.6; // Adjust this value (0.0 to 1.0) to control the volume of the third sound
-
-  // Enable looping for all three audio files
-  audio1.loop = true;
-  audio2.loop = true;
-  audio3.loop = true;
-
-  // Play all three sounds at once
-  audio1.play();
-  audio2.play();
-  audio3.play();
-}
-
-//================================================================
-// Call onPlayerNearKey or onKeyCollected based on your game logic
-//================================================================
-
-
-
-
-
 
 
 
