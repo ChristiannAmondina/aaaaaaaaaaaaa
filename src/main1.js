@@ -1,815 +1,2149 @@
+//================================================================
+// Imports
+//================================================================
+import './assets/styles.css'; // Adjust the path as necessary
 import * as THREE from 'three';
-import './assets/styles.css';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls';
+import { GUI } from 'dat.gui'; // Import dat.GUI
+
+import { 
+  createChair, createdesk , createaircon, 
+  createflower, createframe, createdispenser, created_design1, 
+  created_design2, created_design3, created_floor, created_hallchairs,
+   created_cheaproom, created_fence,    created_statue , created_ceiling
+   ,created_nearstatue, 
+} 
+from './js/objects.js';
+
+
+
+
+import { createblood } from './js/effects.js';
+import { loadWall } from './js/design.js';
+
+
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import * as dat from 'lil-gui'
-
-import gsap from 'gsap';
 
 
+
+
+
+
+// --- FPSControls Class Definition ---
+class FPSControls {
+  constructor(camera, scene, pointerLockControls) {
+    this.camera = camera;
+    this.scene = scene;
+    
+    this.pointerLockControls = pointerLockControls;
+
+    if (!this.pointerLockControls || !this.pointerLockControls.object) {
+      console.error('PointerLockControls object is not initialized correctly.');
+      return;
+    }
+
+    // Ensure pointerLockControls is initialized and object is set
+   
+
+    this.velocity = new THREE.Vector3(0, 0, 0);
+    this.acceleration = new THREE.Vector3(250, 2130, 250);
+    this.deceleration = new THREE.Vector3(-10, -55, -10); // Gravity effect
+    this.move = { forward: false, backward: false, left: false, right: false };
+    this.isStanding = true;
+    this.isEditMode = false; // Track whether we are in edit mode
+
+    // Initialize Audio Listener and Sounds
+    this.listener = new THREE.AudioListener();
+    this.camera.add(this.listener); // Attach the listener to the camera
+
+    // Walking sounds
+    this.walkSound = new THREE.Audio(this.listener);
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load('/sounds/Sound Effects - Walking on Tile Floor.mp3', (buffer) => {
+      this.walkSound.setBuffer(buffer);
+      this.walkSound.setLoop(true);
+      this.walkSound.setVolume(0.5);
+    });
+
+    this.secondWalkSound = new THREE.Audio(this.listener);
+    audioLoader.load('/sounds/Walking Through Water Sound Effect.mp3', (buffer) => {
+      this.secondWalkSound.setBuffer(buffer);
+      this.secondWalkSound.setLoop(true);
+      this.secondWalkSound.setVolume(0.5);
+    });
+
+    // Add event listeners for key events
+    document.addEventListener('keydown', (e) => this._onKeyDown(e), false);
+    document.addEventListener('keyup', (e) => this._onKeyUp(e), false);
+
+    // Buttons for switching modes
+    const firstPersonBtn = document.getElementById('firstPersonBtn');
+    firstPersonBtn.addEventListener('click', () => this.enterFirstPersonMode());
+
+    const editModeBtn = document.getElementById('editModeBtn');
+    editModeBtn.addEventListener('click', () => this.enterEditMode());
+
+    // Scroll event listener for zooming in edit mode
+    document.addEventListener('wheel', (event) => this.handleScroll(event), { passive: false });
+
+    // Create the target marker in the game
+    this.createTargetMarker();
+  }
+
+  createTargetMarker() {
+    const targetPosition = new THREE.Vector3(-61, 4, -40); // Target position for marker
+  
+    const geometry = new THREE.SphereGeometry(0.2, 32, 32); // Small sphere with radius 0.2
+    const material = new THREE.MeshBasicMaterial({ 
+      color: 0xff0000, // Red color
+      transparent: true, // Enable transparency
+      opacity: 0.0 // Set opacity to 0 (invisible)
+    });
+    const marker = new THREE.Mesh(geometry, material);
+  
+    marker.position.copy(targetPosition);
+  
+    this.scene.add(marker);
+  }
+
+  enterFirstPersonMode() {
+    this.pointerLockControls.lock(); // Lock the pointer for first-person mode
+    this.isEditMode = false;
+  }
+
+  enterEditMode() {
+    this.isEditMode = true;
+    this.velocity.set(0, 0, 0); // Reset velocity for flying mode
+  }
+
+  handleScroll(event) {
+    event.preventDefault(); // Prevent page scrolling
+  }
+
+  _onKeyDown(event) {
+    switch (event.code) {
+      case 'KeyW': this.move.forward = true; break;
+      case 'KeyS': this.move.backward = true; break;
+      case 'KeyA': this.move.left = true; break;
+      case 'KeyD': this.move.right = true; break;
+      case 'Space':
+        if (this.isEditMode) {
+          this.move.up = true;
+        } else if (this.isStanding) {
+          this.velocity.y += 15; // Jump height
+          this.isStanding = false;
+        }
+        break;
+      case 'ShiftLeft':
+        if (this.isEditMode) this.move.down = true;
+        break;
+    }
+  }
+
+  _onKeyUp(event) {
+    switch (event.code) {
+      case 'KeyW': this.move.forward = false; break;
+      case 'KeyS': this.move.backward = false; break;
+      case 'KeyA': this.move.left = false; break;
+      case 'KeyD': this.move.right = false; break;
+      case 'Space': this.move.up = false; break;
+      case 'ShiftLeft': this.move.down = false; break;
+    }
+  }
+
+  update(delta) {
+    const targetPosition = new THREE.Vector3(-61, 4, -40); // Target position
+    const tolerance = 4; // Tolerance for target position proximity
+
+
+    if (!this.pointerLockControls || !this.pointerLockControls.object) {
+      console.error("PointerLockControls or its object is not defined.");
+      return;
+    }
+
+    const position = this.pointerLockControls.object.position;
+
+    if (
+      Math.abs(position.x - targetPosition.x) < tolerance &&
+      Math.abs(position.y - targetPosition.y) < tolerance &&
+      Math.abs(position.z - targetPosition.z) < tolerance
+    ) {
+      this.gameFinished(); // Trigger game finish if near the target
+      return;
+    }
+
+    const speedMultiplier = this.isEditMode ? 10 : 1;
+    const frameDeceleration = new THREE.Vector3(
+      this.velocity.x * this.deceleration.x,
+      this.deceleration.y,
+      this.velocity.z * this.deceleration.z
+    );
+    frameDeceleration.multiplyScalar(delta);
+    this.velocity.add(frameDeceleration);
+
+    const direction = new THREE.Vector3();
+    this.camera.getWorldDirection(direction);
+
+    const forward = new THREE.Vector3(direction.x, 0, direction.z).normalize();
+    const right = new THREE.Vector3().crossVectors(this.camera.up, forward).normalize();
+    const up = this.camera.up; // Up direction for flying (vertical movement)
+
+    if (this.move.forward) this.velocity.addScaledVector(forward, this.acceleration.z * delta * speedMultiplier);
+    if (this.move.backward) this.velocity.addScaledVector(forward, -this.acceleration.z * delta * speedMultiplier);
+    if (this.move.left) this.velocity.addScaledVector(right, this.acceleration.x * delta * speedMultiplier);
+    if (this.move.right) this.velocity.addScaledVector(right, -this.acceleration.x * delta * speedMultiplier);
+    if (this.move.up) this.velocity.addScaledVector(up, this.acceleration.y * delta * speedMultiplier);
+    if (this.move.down) this.velocity.addScaledVector(up, -this.acceleration.y * delta * speedMultiplier);
+
+    const raycaster = new THREE.Raycaster(position, forward, 0, 1.5); // Raycasting for collisions
+    const intersects = raycaster.intersectObjects(this.scene.children, true);
+
+    if (this.isEditMode) {
+      this.velocity.y = 0; // Disable gravity effect
+      position.addScaledVector(this.velocity, delta);
+    } else {
+      position.addScaledVector(this.velocity, delta);
+      if (position.y < 5) {
+        this.velocity.y = 0;
+        position.y = 5;
+        this.isStanding = true;
+      }
+
+      if (intersects.length > 0) {
+        position.sub(this.velocity.clone().multiplyScalar(delta)); // Prevent clipping into walls
+        this.velocity.set(0, this.velocity.y, 0); // Stop movement on collision axis
+      }
+    }
+
+    // Walking sounds
+    if (this.move.forward || this.move.backward || this.move.left || this.move.right) {
+      if (!this.walkSound.isPlaying) this.walkSound.play();
+      if (!this.secondWalkSound.isPlaying) this.secondWalkSound.play();
+      position.y += Math.sin(Date.now() / 100) * 0.090; // Bumping effect
+    } else {
+      if (this.walkSound.isPlaying) this.walkSound.stop();
+      if (this.secondWalkSound.isPlaying) setTimeout(() => this.secondWalkSound.stop(), 1000);
+    }
+  }
+
+  gameFinished() {
+    // Create a fade-out effect when the game finishes
+    const whiteScreen = document.createElement('div');
+    whiteScreen.style.position = 'absolute';
+    whiteScreen.style.top = 0;
+    whiteScreen.style.left = 0;
+    whiteScreen.style.width = '100vw';
+    whiteScreen.style.height = '100vh';
+    whiteScreen.style.backgroundColor = 'black';
+    whiteScreen.style.zIndex = 1000;
+    whiteScreen.style.opacity = 0; // Fade-in effect
+    whiteScreen.style.transition = 'opacity 35s ease-out';
+    document.body.appendChild(whiteScreen);
+
+    const imageElement = document.createElement('img');
+    imageElement.style.position = 'absolute';
+    imageElement.style.top = '50%';
+    imageElement.style.left = '50%';
+    imageElement.style.transform = 'translate(-50%, -50%)';
+    imageElement.style.width = 'auto';
+    imageElement.style.height = 'auto';
+    imageElement.style.zIndex = 1100;
+    imageElement.style.opacity = 0;
+    imageElement.style.transition = 'opacity 35s ease-out';
+    imageElement.style.pointerEvents = 'none';
+    document.body.appendChild(imageElement);
+
+    // Play sound
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const soundWater = new Audio('/sounds/The Lobotomy.mp3');
+    const track = audioContext.createMediaElementSource(soundWater);
+    const gainNode = audioContext.createGain();
+    track.connect(gainNode).connect(audioContext.destination);
+    gainNode.gain.value = 0;
+
+    soundWater.playbackRate = 2.0;
+
+    // Fade effects
+    setTimeout(() => {
+      whiteScreen.style.opacity = 1;
+      imageElement.style.opacity = 1;
+      soundWater.play();
+      const fadeInDuration = 1000;
+      const currentTime = audioContext.currentTime;
+      gainNode.gain.linearRampToValueAtTime(1, currentTime + fadeInDuration / 1000);
+    }, 2000);
+
+    // Restart game on CTRL + R
+    document.addEventListener('keydown', (event) => {
+      if (event.ctrlKey && event.key === 'r') {
+        window.location.reload(); // Reload the page
+      }
+    });
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//================================================================
+// Scene Setup
+//================================================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x2f303d); // Default white background
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('webgl-container').appendChild(renderer.domElement);
+
+
+//================================================================
+// TextureLoader
+//================================================================
 const textureLoader = new THREE.TextureLoader();
 
-// Your code to initialize scene, camera, renderer, etc.
 
-/**
-//-------------------------------------------------------------------------------------------------------- Base
- */
-const canvas = document.querySelector('canvas.webgl');
-const scene = new THREE.Scene();
-
-//----------------------------------------------------------------------------SUN
-// Load Sun texture
-const sunTexture = textureLoader.load('/images/texture/sun.jpg'); // Add the path to your sun texture
-
-// Create material for the Sun (use emissive material to make it glow)
-const sunMaterial = new THREE.MeshBasicMaterial({
-    map: sunTexture,
-    emissive: 0xFFFFFF,  // White emissive light to simulate the glowing effect
-    emissiveIntensity: 4,  // Adjust emissive intensity to control brightness
-  
-});
-
-// Create Sun sphere geometry and mesh
-const sun = new THREE.Mesh(
-    new THREE.SphereGeometry(5, 64, 64),  // Larger radius for the Sun
-    sunMaterial
-);
-
-// Position the Sun far from Earth
-sun.position.set(30, 10, 0);  // Adjust the position as necessary
-sun.scale.set(0.1, 0.1, 0.1); // Scale the sun to make it larger (5 times)
-
-// Add the Sun to the scene
-scene.add(sun);
-
-// Add light source (sun light)
-const sunLight = new THREE.PointLight(0xFFFFFF, 1.5, 100);  // Intensity of light
-sunLight.position.set(30, 0, 0);  // Position same as the Sun
-
-
-// Optionally, add a shadow from the Sun (if you need)
-sunLight.castShadow = true;
-
-// Add the light to the scene
-scene.add(sunLight);
-
-//----------------------SUN LAYER
-
-
-
-// Create the material for the sun layer
-const sunlayerMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffffff, // Set the color of the glow (white in this case)
-    emissive: 0xffffff, // Make it glow with the same color
-    emissiveIntensity: 2, // Initial brightness of the glow
-    blending: THREE.AdditiveBlending, // Additive blending for a glowing effect
-    transparent: true, // Make it semi-transparent
-    opacity: 0.2, // Set the opacity level
-});
-
-// Create the sun mesh with a sphere geometry
-const sunlayer = new THREE.Mesh(new THREE.SphereGeometry(1.1, 64, 64), sunlayerMaterial);
-
-// Position and scale the sun mesh
-sunlayer.position.set(30, 10, 0); // Place the sun at the origin
-sunlayer.scale.set(1.4, 1.4, 1.4); // Scale it to create the glowing halo
-
-// Add the sun layer to the scene
-scene.add(sunlayer);
-
-// Animation Variables for the "bling-bling" effect
-let time = 0;
-const pulseSpeed = 0.5; // Speed of pulsing
-const maxIntensity = 3; // Maximum emissive intensity
-const minIntensity = 1; // Minimum emissive intensity
-//-------------------------------------------------------------------------------------------------------- Load Earth texture
-
-
-
-//-------------------------------------------------------------------------------------------------------- Load Earth texture
-
-// Earth Textures
-const earthTexture = textureLoader.load('/images/texture/Earthmap1.jpg');
-earthTexture.encoding = THREE.sRGBEncoding; 
-earthTexture.wrapS = THREE.RepeatWrapping;  
-earthTexture.wrapT = THREE.RepeatWrapping;  
-earthTexture.magFilter = THREE.LinearFilter; 
-
-// Earth Material and Mesh (for both Earth objects)
-const earthMaterial = new THREE.MeshStandardMaterial({
-    color: '#ffffff',
-    map: earthTexture,
-    metalness: 0.2,
-    roughness: 0.4,
-    emissiveIntensity: 0.3,
-});
-
-const earth = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), earthMaterial);
-earth.position.set(0, 0, 0);
-earth.scale.set(1.5, 1.5, 1.5);
-scene.add(earth);
-
-
-// voyager
-const voyagerTexture = textureLoader.load('/images/bg/tech1.webp');
-voyagerTexture.encoding = THREE.sRGBEncoding;
-voyagerTexture.wrapS = THREE.RepeatWrapping;
-voyagerTexture.wrapT = THREE.RepeatWrapping;
-voyagerTexture.magFilter = THREE.LinearFilter;
-
-// Earth Material and Mesh (for both Earth objects)
-const voyagerMaterial = new THREE.MeshStandardMaterial({
-    color: '#ffffff',
-    map: voyagerTexture,
-    metalness: 0.4,
-    roughness: 0,
-    emissiveIntensity: 0.3,
-});
-
-// Create the Voyager mesh
-const voyager = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), voyagerMaterial);
-voyager.position.set(-2, 0, 2);
-voyager.scale.set(0.2, 0.2, 0.2);
-scene.add(voyager);
-
-
-
-
-
-//--------------------MOON
-// Set Moon's distance from Earth
-// Set Moon's distance from Earth
-const moonDistance = 15;  // Increased distance from Earth (15 units away)
-
-// 1. Load the Moon texture (replace with the path to your Moon texture)
-// Load Moon texture
-const moonTexture = textureLoader.load('/images/texture/moon.jpg');
-moonTexture.encoding = THREE.sRGBEncoding;  // Optional: Ensure proper color space handling
-
-// Create the material for the Moon with the texture and emissive glow
-const moonMaterial = new THREE.MeshStandardMaterial({
-    map: moonTexture,       // Apply the Moon texture
-    metalness: 0.1,         // Slight metalness for realism
-    roughness: 0.8,         // Adjust roughness to make it look like the Moon's surface
-   
-    emissiveIntensity: 1,   // Increase emissive intensity to make it glow more
-});
-
-// Create the Moon mesh with the material
-const moon = new THREE.Mesh(
-    new THREE.SphereGeometry(0.5, 32, 32),  // Moon sphere geometry with radius 0.5
-    moonMaterial                          // Apply the Moon material
-);
-
-// Set the initial position of the Moon (behind the Earth)
-moon.position.set(14, 0, -15);  // 15 units behind Earth
-
-// Add the Moon to the scene
-scene.add(moon);
-
-
-
-//-------------------------------------------
-const galaxyParameters = {
-    count: 250200,
-    size: 0.006,
-    radius: 5.01,
-    branches: 7,
-    spin: -4.342,
-    randomness: 0.328,
-    randomnessPower: 3,
-    insideColor: '#2c485e',  // Core color of the galaxy
-    outsideColor: '#000000', // Outer region color of the galaxy
-    waveSpeed: 0.1,
-    waveHeight: 0,
-};
-
-let galaxyGeometry = null;
-let galaxyMaterial = null;
-let galaxyPoints = null;
-let galaxyOriginalPositions = null;
-
-const generateGalaxy = () => {
-    if (galaxyPoints !== null) {
-        galaxyGeometry.dispose();
-        galaxyMaterial.dispose();
-        scene.remove(galaxyPoints);
-    }
-
-    galaxyGeometry = new THREE.BufferGeometry();
-    const galaxyPositions = new Float32Array(galaxyParameters.count * 3);
-    const galaxyColors = new Float32Array(galaxyParameters.count * 3);
-
-    const insideGalaxyColor = new THREE.Color(galaxyParameters.insideColor);
-    const outsideGalaxyColor = new THREE.Color(galaxyParameters.outsideColor);
-
-    for (let i = 0; i < galaxyParameters.count; i++) {
-        const i3 = i * 3;
-
-        const radius = Math.random() * galaxyParameters.radius;
-        const spinAngle = radius * galaxyParameters.spin;
-        const branchAngle = (i % galaxyParameters.branches) / galaxyParameters.branches * Math.PI * 2;
-
-        const randomX = Math.pow(Math.random(), galaxyParameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1);
-        const randomY = Math.pow(Math.random(), galaxyParameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1);
-        const randomZ = Math.pow(Math.random(), galaxyParameters.randomnessPower) * (Math.random() < 0.5 ? 1 : -1);
-
-        galaxyPositions[i3] = Math.cos(branchAngle + spinAngle) * radius + randomX;
-        galaxyPositions[i3 + 1] = randomY;
-        galaxyPositions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + randomZ;
-
-        const mixedColor = insideGalaxyColor.clone();
-        mixedColor.lerp(outsideGalaxyColor, radius / galaxyParameters.radius);
-
-        galaxyColors[i3] = mixedColor.r;
-        galaxyColors[i3 + 1] = mixedColor.g;
-        galaxyColors[i3 + 2] = mixedColor.b;
-    }
-
-    galaxyGeometry.setAttribute('position', new THREE.BufferAttribute(galaxyPositions, 3));
-    galaxyGeometry.setAttribute('color', new THREE.BufferAttribute(galaxyColors, 3));
-    galaxyOriginalPositions = galaxyPositions.slice();
-
-    galaxyMaterial = new THREE.PointsMaterial({
-        size: galaxyParameters.size,
-        sizeAttenuation: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        vertexColors: true,
-    });
-
-    galaxyPoints = new THREE.Points(galaxyGeometry, galaxyMaterial);
-    scene.add(galaxyPoints);
-};
-
-generateGalaxy();
-
-
-const starFieldCount = 5000;
-const starPositionsArray = new Float32Array(starFieldCount * 3);
-const starFieldMinDistance = 50; // Previously 'minStarDistance'
-const starFieldMaxDistance = 200; // Previously 'maxStarDistance'
-
-for (let i = 0; i < starFieldCount; i++) {
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.random() * Math.PI;
-    const distance = Math.random() * (starFieldMaxDistance - starFieldMinDistance) + starFieldMinDistance;
-    const x = distance * Math.sin(phi) * Math.cos(theta);
-    const y = distance * Math.cos(phi);
-    const z = distance * Math.sin(phi) * Math.sin(theta);
-
-    starPositionsArray[i * 3] = x;
-    starPositionsArray[i * 3 + 1] = y;
-    starPositionsArray[i * 3 + 2] = z;
-}
-
-const starFieldGeometry = new THREE.BufferGeometry();
-starFieldGeometry.setAttribute('position', new THREE.BufferAttribute(starPositionsArray, 3));
-
-const starFieldMaterial = new THREE.PointsMaterial({
-    color: 0x4fffff,
-    sizeAttenuation: true,
-    size: 0.03,
-});
-
-const starField = new THREE.Points(starFieldGeometry, starFieldMaterial);
-scene.add(starField);
-
-
-let currentSectionIndex = 0;
-
-window.addEventListener('scroll', () => {
-    const scrollPositionY = window.scrollY;
-    currentSectionIndex = Math.round(scrollPositionY / sizes.height);
-
-    if (galaxyPoints) galaxyPoints.visible = currentSectionIndex === 0;
-    if (starField) starField.visible = currentSectionIndex !== 0;
-});
-
-
-const debugGUI = new dat.GUI();
-
-debugGUI.add(galaxyParameters, 'count').min(100).max(1000000).step(100).onFinishChange(generateGalaxy);
-debugGUI.add(galaxyParameters, 'size').min(0.001).max(0.1).step(0.001).onFinishChange(generateGalaxy);
-debugGUI.add(galaxyParameters, 'radius').min(0.01).max(20).step(0.01).onFinishChange(generateGalaxy);
-debugGUI.add(galaxyParameters, 'branches').min(2).max(20).step(1).onFinishChange(generateGalaxy);
-debugGUI.add(galaxyParameters, 'spin').min(-5).max(5).step(0.001).onFinishChange(generateGalaxy);
-debugGUI.add(galaxyParameters, 'randomness').min(0).max(2).step(0.001).onFinishChange(generateGalaxy);
-debugGUI.add(galaxyParameters, 'randomnessPower').min(1).max(10).step(0.001).onFinishChange(generateGalaxy);
-debugGUI.addColor(galaxyParameters, 'insideColor').onFinishChange(generateGalaxy);
-debugGUI.addColor(galaxyParameters, 'outsideColor').onFinishChange(generateGalaxy);
-debugGUI.add(galaxyParameters, 'waveSpeed').min(0).max(5).step(0.1);
-debugGUI.add(galaxyParameters, 'waveHeight').min(0).max(2).step(0.1);
-
-debugGUI.close();
-
-
-
-// Your tick function here...
-
-//--------------------------------------------------------------------------------- * Ozone Layer
-
-const ozoneMaterial = new THREE.MeshBasicMaterial({
-    color: 0x027fe0,
-    emissive: 0xbde2ff,
-    emissiveIntensity: 2,
-    transparent: true,
-    opacity: 0.20,
-});
-
-const ozone = new THREE.Mesh(new THREE.SphereGeometry(1.1, 64, 64), ozoneMaterial);
-ozone.position.set(0, 0, 0);
-ozone.scale.set(1.4, 1.4, 1.4);
-scene.add(ozone);
-
-
-
-const cloudTexture = textureLoader.load('/images/earth/05_earthcloudmaptrans.png');
-
-
-const cloudMaterial = new THREE.MeshBasicMaterial({
-    map: cloudTexture,
-    emissive: 0xbde2ff,
-    emissiveIntensity: 2,
-    roughness: 0,
-
-
-    blending: THREE.AdditiveBlending,
-   // blending: THREE.MultiplyBlending
-    //blending: THREE.NormalBlending
-     
-    opacity: 0.190, // Fully opaque (since blending is used)
-});
-
-
-
-const cloud = new THREE.Mesh(new THREE.SphereGeometry(1.1, 64, 64), cloudMaterial);
-cloud.position.set(0, 0, 0);
-cloud.scale.set(1.410, 1.400, 1.410);
-
-scene.add(cloud);
-//--------------------------------------------------------------------------------EARTH LIGHTS
-
-const earthlightTexture = textureLoader.load('/images/earth/03_earthlights1k.jpg');
-
-const earthlightMaterial = new THREE.MeshBasicMaterial({
-    map: earthlightTexture,
-    emissive: 0xbde2ff,
-    emissiveIntensity: 2,
-    blending: THREE.CustomBlending,
-    blendEquation: THREE.AddEquation, // Or any other blend equation
-    blendSrc: THREE.SrcAlphaFactor, // Or other blend factors
-    blendDst: THREE.OneMinusSrcAlphaFactor, // Or other blend factors
-
-    //blending: THREE.AdditiveBlending
-   // blending: THREE.MultiplyBlending
-    //blending: THREE.NormalBlending
-     
-    opacity: 0.7, // Fully opaque (since blending is used)
-});
-
-
-
-const earthlight = new THREE.Mesh(new THREE.SphereGeometry(1.1, 64, 64), earthlightMaterial);
-earthlight.position.set(0, 0, 0);
-earthlight.scale.set(1.420, 1.420, 1.420);
-
-scene.add(earthlight);
-//-------------------------------------------------------------------  Correctly set the position and scale for the `cloud` object
-
-
-
-
-
-//--------------------------------------------------------------------------------- * Particles (Asteroids)
-
-const particleTexture = textureLoader.load('/images/texture/asteroid.avif');
-const particlesCount = 250;
-const radius = 10;
-const minDistance = 0.5;
-const particlesGroup = new THREE.Group();
-const particleVelocities = [];
-const asteroidPositions = [];
-
-for (let i = 0; i < particlesCount; i++) {
-    const asteroidRadius = Math.random() * 0.05 + 0.03;
-    const particleGeometry = new THREE.SphereGeometry(asteroidRadius, 13, 2);
-    const positions = particleGeometry.attributes.position.array;
-
-    for (let j = 0; j < positions.length; j += 3) {
-        const noiseFactor = 0.02 * asteroidRadius;
-        positions[j] += (Math.random() - 0.5) * noiseFactor;
-        positions[j + 1] += (Math.random() - 0.5) * noiseFactor;
-        positions[j + 2] += (Math.random() - 0.5) * noiseFactor;
-    }
-    particleGeometry.attributes.position.needsUpdate = true;
-
-    const particleMaterial = new THREE.MeshStandardMaterial({
-        map: particleTexture,
-
-      
-        emissiveIntensity: 0.1,
-        roughness: 0.8,
-        metalness: 0.3,
-    });
-
-    const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-
-    let positionValid = false;
-    let x, y, z;
-
-    while (!positionValid) {
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.random() * Math.PI;
-        const distance = radius + Math.random() * 4;
-
-        x = distance * Math.sin(phi) * Math.cos(theta);
-        y = distance * Math.cos(phi);
-        z = distance * Math.sin(phi) * Math.sin(theta);
-
-        positionValid = true;
-        for (const pos of asteroidPositions) {
-            const dx = pos.x - x;
-            const dy = pos.y - y;
-            const dz = pos.z - z;
-            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (dist < minDistance) {
-                positionValid = false;
-                break;
-            }
-        }
-    }
-
-    asteroidPositions.push({ x, y, z });
-    particle.position.set(x, y, z);
-    particlesGroup.add(particle);
-
-    particleVelocities.push({
-        x: (Math.random() - 0.5) * 0.005,  // Reduced to slow down movement
-        y: (Math.random() - 0.5) * 0.005,  // Reduced to slow down movement
-        z: (Math.random() - 0.5) * 0.005,  // Reduced to slow down movement
-    });
-}// Move particlesGroup closer to the camera
-
-
-
-
-
-scene.add(particlesGroup);
-
-
-const loader = new GLTFLoader();
-
-// Array to store the satellites
-let satellites = [];
-const numberOfSatellites = 3;  // Reduce the number of satellites
-
-const satelliteOrbitSpeed = 0.001;  // Slow orbit speed for the satellite
-const satelliteScale = 0.01;  // Smaller scale for satellites
-
-const satelliteDistances = [radius - 6.6, radius - 10, radius - 14, radius - 18, radius - 22];  // Distances of the satellites from Earth
-
-
-
-// Load the satellites
-for (let i = 0; i < numberOfSatellites; i++) {
-    loader.load('/images/3D/satellite.glb', (gltf) => {
-        const satellite = gltf.scene;
-        satellite.scale.set(satelliteScale, satelliteScale, satelliteScale);  // Scale of the satellite
-        satellite.position.set(satelliteDistances[i], 0, 0);  // Position the satellite at a different distance
-
-        // Loop through all the materials of the satellite
-        satellite.traverse((child) => {
-            if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = false;
-
-                // Set the material properties for roughness and metalness
-                if (child.material.isMeshStandardMaterial) {
-                    child.material.roughness = 0;  // Set roughness to 0 (shiny)
-                    child.material.metalness = 0.3;  // Set metalness to 1 (fully metallic)
-                }
-            }
-        });
-
-        // Add lighting for realism
-        const satelliteLight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI / 4, 0.1, 2);
-        satelliteLight.position.set(40, 5, 5);
-        satelliteLight.target = satellite;
-        scene.add(satelliteLight);
-
-        scene.add(satellite);  // Add satellite to the scene
-
-        // Store the satellite in the satellites array
-        satellites.push(satellite);
-    });
-}
-
-
-
-//--------------------------------------------------------------------------------- * astronaut
-
-
-let astronaut, mixer;  // Declare a variable to store the astronaut object and mixer
-const astroDistance = 5;  // Increased distance from Earth (15 units away)
-// Load the Bee model (assuming it is in the same directory or path)
-loader.load('/images/3D/Walkingastronaut.glb', (gltf) => {
-    astronaut = gltf.scene;
-
-    // Set the scale of the astronaut (adjust to your preference)
-    astronaut.scale.set(0.10, 0.10, 0.10);  // Adjust scale as needed
-
-    // Position the astronaut at a specific location in the scene (e.g., next to Earth)
-    astronaut.position.set(24, 0, -1);  // Adjust x, y, z values to bring it closer
-
-    // Loop through all the materials of the astronaut to apply lighting/shadow
-    astronaut.traverse((child) => {
-        if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-
-            // Set the material properties for roughness and metalness (if applicable)
-            if (child.material.isMeshStandardMaterial) {
-                child.material.roughness = 0.9;  // Adjust as needed
-                child.material.metalness = 0.7;  // Adjust as needed
-            }
-        }
-    });
-
-    // Set up the animation mixer to handle the animations in the model
-    mixer = new THREE.AnimationMixer(astronaut);
-
-    // Get animations from the glTF and add them to the mixer
-    gltf.animations.forEach((clip) => {
-        mixer.clipAction(clip).play();  // Play all animations
-    });
-
-    // Add any additional lighting for the astronaut (optional)
-    const astronautLight = new THREE.SpotLight(0xffffff, 1, 100, Math.PI / 4, 0.1, 2);
-    astronautLight.position.set(15, 15, 10);  // Position the light to illuminate the astronaut
-    astronautLight.target = astronaut;  // Target the astronaut with the light
-    scene.add(astronautLight);
-
-    // Add the astronaut to the scene
-    scene.add(astronaut);
-});
-//--------------------------------------------------------------------------------- * Lights
- 
-const directionalLight = new THREE.DirectionalLight('#ffffff', 3);
-directionalLight.position.set(30, 10, 0);
-scene.add(directionalLight);
-
-const ambientLight = new THREE.AmbientLight(0x404040, 1);
+//================================================================
+// Fog Setup
+//================================================================
+//0.0080
+let fogDensity = 0; // Adjusted density for fog
+let fogColor = new THREE.Color(0xaaaaaa); // Set initial fog color (light gray)
+scene.fog = new THREE.FogExp2(fogColor, fogDensity); // Exponential fog (color, density)
+
+//================================================================
+// Lighting Setup
+//================================================================
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.1); // Ambient light to illuminate all objects
 scene.add(ambientLight);
 
-/**
- * Stars
- */
-const starsCount = 20000;
-const starPositions = new Float32Array(starsCount * 3);
-const minStarDistance = 50;
-const maxStarDistance = 200;
+const directionalLight = new THREE.DirectionalLight(0x635900, 0.010); // White directional light
+directionalLight.position.set(-15.36, -50, 50).normalize(); // Light source position
+scene.add(directionalLight);
 
-for (let i = 0; i < starsCount; i++) {
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.random() * Math.PI;
-    const distance = Math.random() * (maxStarDistance - minStarDistance) + minStarDistance;
-    const x = distance * Math.sin(phi) * Math.cos(theta);
-    const y = distance * Math.cos(phi);
-    const z = distance * Math.sin(phi) * Math.sin(theta);
-
-    starPositions[i * 3 + 0] = x;
-    starPositions[i * 3 + 1] = y;
-    starPositions[i * 3 + 2] = z;
-}
-
-const starsGeometry = new THREE.BufferGeometry();
-starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-
-const starsMaterial = new THREE.PointsMaterial({
-    color: 0x4fffff,
-    sizeAttenuation: true,
-    size: 0.03,
-});
-
-const stars = new THREE.Points(starsGeometry, starsMaterial);
-scene.add(stars);
-
-
-
-
-
- //--------------------------------------------------------------------------------- * Camera
-
-const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.z = 6;
-scene.add(camera);
-
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.enableZoom = true;
-controls.enablePan = true;
-
-// Set full rotation for both X and Y axes
-controls.maxPolarAngle = Math.PI;  // Allow full vertical rotation (360-degree)
-controls.minPolarAngle = 0;        // Allow the camera to rotate all the way down to the ground
-
-controls.maxDistance = 17;
-controls.minDistance = 2.6;
-
-const groundHeight = -10;
-
-
-function checkCameraPosition() {
-    // Prevent camera from going below the ground height
-    if (camera.position.y < groundHeight) {
-        camera.position.y = groundHeight;
-    }
-
-    
-}
-
- //--------------------------------------------------------------------------------- * Renderer
-const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;  // Soft shadows for realism
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // For softer shadows
+// Create a DirectionalLight with yellow color and intensity 1
 
-/**
- //--------------------------------------------------------------------------------- * Animate
- */
- const clock = new THREE.Clock();
-let previousTime = 0;
-let isVoyagerInView = false;
-let rotationSpeed = 0;
-let timeout;
 
-// Scroll Event Listener
-window.addEventListener('scroll', () => {
-    const homeSection = document.querySelector('#home');
-    const homeSectionRect = homeSection.getBoundingClientRect();
 
-    // Check if the 'home' section is in view
-    if (homeSectionRect.top <= window.innerHeight && homeSectionRect.bottom >= 0) {
-        if (!isVoyagerInView) {
-            isVoyagerInView = true;
-            rotationSpeed = 1;  // Start faster rotation speed
-            console.log('Voyager is in view, rotation started at fast speed');
 
-            // Set a timeout to revert back to normal speed after 5 seconds
-            clearTimeout(timeout);  // Clear any existing timeout
-            timeout = setTimeout(() => {
-                rotationSpeed = 0.01;  // Set to normal speed
-                console.log('Rotation speed reverted to normal');
-            }, 5000); // Revert after 5 seconds
-        }
-    } else {
-        if (isVoyagerInView) {
-            isVoyagerInView = false;
-            rotationSpeed = 0;  // Stop rotation when out of view
-            console.log('Voyager is out of view, rotation stopped');
-        }
-    }
 
-    // Trigger GSAP animation when the section changes
-    // Assuming `newSection` and `currentSection` are properly set and used
-     if (newSection !== currentSection) {
-         gsap.to(voyager.rotation, {
-             duration: 1.5,
-             ease: 'power2.inOut',
-             x: '+=6',
-             y: '+=3'
-         });
-     }
+
+
+
+
+const localizedDirectionalLight = new THREE.DirectionalLight(0xffcc00, 1.0);
+
+// Position it in your specific area
+localizedDirectionalLight.position.set(-15.36, -50, 50); // Position it at (-115, -39, -40)
+
+// Set the light's target to the area you want to illuminate
+localizedDirectionalLight.target.position.set(29, 7, -28); // Focus it downward toward the ground
+
+// Enable shadows for more localized effects
+localizedDirectionalLight.castShadow = true;
+localizedDirectionalLight.shadow.mapSize.width = 1024;  // Higher value for better resolution
+localizedDirectionalLight.shadow.mapSize.height = 1024;
+localizedDirectionalLight.shadow.camera.near = 0.1;  // Set the shadow camera near
+localizedDirectionalLight.shadow.camera.far = 500;  // Set the shadow camera far (to control distance)
+
+// Add the light to the scene
+scene.add(localizedDirectionalLight);
+scene.add(localizedDirectionalLight.target);
+
+
+//================================================================
+// Sound Setup with Auto-Play Attempt
+//================================================================
+let audioContext;
+
+document.addEventListener('click', function() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  // Resume the AudioContext if it's suspended
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+
+  // Now you can safely start playing audio
+  playAudio();
 });
 
+// Function to play three audio files at once, looping indefinitely
+function playAudio() {
+  const audio1 = new Audio('sounds/).');
+  const audio2 = new Audio('sounds/).'); // Second audio file
+  const audio3 = new Audio('sounds/'); // Third audio file
+
+  // Set the volume of the third audio to be lower than the others
+  audio3.volume = 0.6; // Adjust this value (0.0 to 1.0) to control the volume of the third sound
+
+  // Enable looping for all three audio files
+  audio1.loop = true;
+  audio2.loop = true;
+  audio3.loop = true;
+
+  // Play all three sounds at once
+  audio1.play();
+  audio2.play();
+  audio3.play();
+}
+
+//================================================================
+// Call onPlayerNearKey or onKeyCollected based on your game logic
+//================================================================
 
 
 
 
-const tick = () => {
-    const elapsedTime = clock.getElapsedTime();  // Get elapsed time
-    const deltaTime = elapsedTime - previousTime;
-    previousTime = elapsedTime;
 
-   
-    if (galaxyPoints && galaxyOriginalPositions) {
-        const positions = galaxyPoints.geometry.attributes.position.array;
-        for (let i = 0; i < galaxyParameters.count; i++) {
-            const i3 = i * 3;
-            const x = galaxyOriginalPositions[i3];
-            const z = galaxyOriginalPositions[i3 + 2];
-            const distance = Math.sqrt(x * x + z * z);
-            positions[i3 + 1] =
-                galaxyOriginalPositions[i3 + 1] +
-                Math.sin(distance * 2 + elapsedTime * galaxyParameters.waveSpeed) *
-                galaxyParameters.waveHeight *
-                (1 - distance / galaxyParameters.radius);
-        }
-        galaxyPoints.geometry.attributes.position.needsUpdate = true;
-    }
-    
 
-    controls.update(); // Update camera controls
 
-    // Update Earth's rotation
-    earth.rotation.x += 0.010 * deltaTime;
-    earth.rotation.y += 0.010 * deltaTime;
 
-    ozone.rotation.x += 0.010 * deltaTime;
-    ozone.rotation.y += 0.010 * deltaTime;
+//================================================================
+// Wall Setup (Front, Back, Left, Right)
+//================================================================
 
-   
-    earthlight.rotation.x += 0.010 * deltaTime;
-    earthlight.rotation.y += 0.010 * deltaTime;
+// Front Wall
+const frontWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Front wall texture
+frontWallTexture.wrapS = THREE.RepeatWrapping;
+frontWallTexture.wrapT = THREE.RepeatWrapping;
+frontWallTexture.repeat.set(30, 10); // Scale texture to fit
 
-    cloud.rotation.x += 0.020 * deltaTime;
-    cloud.rotation.y += 0.020 * deltaTime;
+const frontWallMaterial = new THREE.MeshStandardMaterial({ 
+    map: frontWallTexture, 
+    side: THREE.DoubleSide, 
+    roughness: 0, 
+    metalness: 0.5 // Optional: for added shininess
+});
+const frontWall = new THREE.Mesh(new THREE.BoxGeometry(100, 40, 1), frontWallMaterial);
+frontWall.position.z = -50;
+frontWall.castShadow = true;
+frontWall.receiveShadow = true;
+scene.add(frontWall);
 
-    // Update the Moon's orbit around Earth
-    const orbitRadius = moonDistance;  
-    const moonOrbitSpeed = 0.010;      
+// Back Wall
+const backWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Back wall texture
+backWallTexture.wrapS = THREE.RepeatWrapping;
+backWallTexture.wrapT = THREE.RepeatWrapping;
+backWallTexture.repeat.set(30, 10); // Adjust the repeat scale
 
-    const voyagerDistance = 2;  // Distance from Earth to Voyager (larger than Moon's orbit)
-const voyagerOrbitSpeed = 0.005;  // Speed of the Voyager's orbit
-let voyagerRotationSpeed = 0.02; // Rotation speed of Voyager (for its own spin)
+const backWallMaterial = new THREE.MeshStandardMaterial({ 
+    map: backWallTexture, 
+    side: THREE.DoubleSide, 
+    roughness: 0, 
+    metalness: 0.5
+});
+const backWall = new THREE.Mesh(new THREE.BoxGeometry(100, 40, 1), backWallMaterial);
+backWall.position.z = 50;
+backWall.castShadow = true;
+backWall.receiveShadow = true;
+scene.add(backWall);
 
-    moon.position.x = orbitRadius * Math.cos(elapsedTime * moonOrbitSpeed);
-    moon.position.z = orbitRadius * Math.sin(elapsedTime * moonOrbitSpeed);
-    moon.rotation.y = elapsedTime * moonOrbitSpeed;
+// Left Wall
+const leftWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Left wall texture
+leftWallTexture.wrapS = THREE.RepeatWrapping;
+leftWallTexture.wrapT = THREE.RepeatWrapping;
+leftWallTexture.repeat.set(30, 10); // Adjust the repeat scale
 
-      // Update the Voyager's position for orbiting around Earth
-      voyager.position.x = voyagerDistance * Math.cos(elapsedTime * voyagerOrbitSpeed);  // X position
-      voyager.position.z = voyagerDistance * Math.sin(elapsedTime * voyagerOrbitSpeed);  // Z position
-  
-      // Optionally rotate Voyager around its own axis
-      voyager.rotation.y = elapsedTime * voyagerRotationSpeed;  // Spin around Y-axis
+const leftWallMaterial = new THREE.MeshStandardMaterial({ 
+    map: leftWallTexture, 
+    side: THREE.DoubleSide, 
+    roughness: 0, 
+    metalness: 0.5
+});
+const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, 40, 100), leftWallMaterial);
+leftWall.position.set(-52, 2, -1);
+leftWall.scale.set(1, 2, 0.6);
 
-    if (isVoyagerInView) {
-        voyager.rotation.x = elapsedTime * rotationSpeed;  // Rotate around X axis
-        voyager.rotation.y = elapsedTime * rotationSpeed;  // Rotate around Y axis
-    }
-    
-    
-     // Rotate galaxy for a dynamic effect (optional)
-  
-   /// Update astronaut's orbit around the Moon
-    if (astronaut) {
-        const astroOffset = 1.5;  // Distance offset from the Moon
-        astronaut.position.x = moon.position.x + astroOffset * Math.cos(elapsedTime * moonOrbitSpeed);
-        astronaut.position.z = moon.position.z + astroOffset * Math.sin(elapsedTime * moonOrbitSpeed);
-        astronaut.position.y = moon.position.y;
+leftWall.castShadow = true;
+leftWall.receiveShadow = true;
+scene.add(leftWall);
 
-    }
-        
-     // Animation mixer
-    if (mixer) mixer.update(deltaTime);
+// Left Wall 1
+const left1WallTexture = textureLoader.load('/images/texture/tile.jpg'); // Left wall texture
+left1WallTexture.wrapS = THREE.RepeatWrapping;
+left1WallTexture.wrapT = THREE.RepeatWrapping;
+left1WallTexture.repeat.set(30, 10); // Adjust the repeat scale
 
-    
+const left1WallMaterial = new THREE.MeshStandardMaterial({ 
+    map: left1WallTexture, 
+    side: THREE.DoubleSide, 
+    roughness: 0, 
+    metalness: 0.5
+});
+const left1Wall = new THREE.Mesh(new THREE.BoxGeometry(1, 40, 100), left1WallMaterial);
+left1Wall.scale.set(8, 0.3, 0.3);
+left1Wall.position.set(-44, 20, 35);
 
-    // Update sun properties
-    const sunScaleFactor = 1 + 0.2 * Math.abs(Math.sin(elapsedTime));  // Dynamic sun scale
-    sunlayer.scale.set(sunScaleFactor, sunScaleFactor, sunScaleFactor);
-    sunlayerMaterial.emissiveIntensity = minIntensity + Math.sin(elapsedTime * pulseSpeed) * (maxIntensity - minIntensity);
-    sunlayerMaterial.opacity = 0.2 + 0.1 * Math.sin(elapsedTime * pulseSpeed);
+left1Wall.castShadow = true;
+left1Wall.receiveShadow = true;
+scene.add(left1Wall);
 
-       // Update the particles' positions
-       particlesGroup.children.forEach((particle, i) => {
-        const velocity = particleVelocities[i];
-        particle.position.x += velocity.x;
-        particle.position.y += velocity.y;
-        particle.position.z += velocity.z;
-        
-    });
-    // Rotate the sphere if it's in view
-    
+// Right Wall
+const rightWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Right wall texture
+rightWallTexture.wrapS = THREE.RepeatWrapping;
+rightWallTexture.wrapT = THREE.RepeatWrapping;
+rightWallTexture.repeat.set(30, 10); // Adjust the repeat scale
 
-    
-   
-     
-    
-    
-        satellites.forEach((satellite, index) => {
-            const orbitRadius = satelliteDistances[index];  // Get the distance of each satellite from Earth
-    
-            // Update the satellite's position based on its orbit
-            satellite.position.x = orbitRadius * Math.cos(elapsedTime * satelliteOrbitSpeed * (index + 1));  // Multiply by index to make each satellite orbit differently
-            satellite.position.z = orbitRadius * Math.sin(elapsedTime * satelliteOrbitSpeed * (index + 1));
-    
-            // Rotate the satellite (if desired, you can change rotation logic here)
-            satellite.rotation.y += 0.10 * deltaTime;
-        });
-    // Render the scene
-    renderer.render(scene, camera);
+const rightWallMaterial = new THREE.MeshStandardMaterial({ 
+    map: rightWallTexture, 
+    side: THREE.DoubleSide, 
+    roughness: 0, 
+    metalness: 0.5
+});
+const rightWall = new THREE.Mesh(new THREE.BoxGeometry(1, 40, 100), rightWallMaterial);
+rightWall.position.x = 50;
+rightWall.castShadow = true;
+rightWall.receiveShadow = true;
+scene.add(rightWall);
 
-    // Continue the animation loop
-    window.requestAnimationFrame(tick);
-    renderer.autoClear = false; // Prevent clearing
-    renderer.render(galaxyScene, galaxyCamera);
+//================================================================
+// Ceiling and Floor Setup
+//================================================================
+/*
+
+// Ceiling
+const ceilingTexture = textureLoader.load('images/texture/tile.jpg'); // Ceiling texture
+ceilingTexture.wrapS = THREE.RepeatWrapping;
+ceilingTexture.wrapT = THREE.RepeatWrapping;
+ceilingTexture.repeat.set(0, 0); // Adjust the repeat scale
+
+const ceilingMaterial = new THREE.MeshStandardMaterial({ 
+    map: ceilingTexture, 
+    side: THREE.DoubleSide, 
+    roughness: 0, 
+    metalness: 0.5
+});
+const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), ceilingMaterial);
+ceiling.rotation.x = Math.PI / 2;
+ceiling.position.y = 22; // Place it above the floor
+ceiling.receiveShadow = true;
+scene.add(ceiling);
+
+*/
+
+// Floor
+const floorTexture = textureLoader.load('/images/texture/tile.jpg'); // Floor texture (same texture as ceiling)
+floorTexture.wrapS = THREE.RepeatWrapping;
+floorTexture.wrapT = THREE.RepeatWrapping;
+floorTexture.repeat.set(30, 10); // Adjust the repeat scale
+
+const floorMaterial = new THREE.MeshStandardMaterial({ 
+    map: floorTexture, 
+    side: THREE.DoubleSide, 
+    roughness: 0, 
+    metalness: 0.5
+});
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), floorMaterial);
+floor.rotation.x = Math.PI / -2; // Rotate to make it horizontal
+floor.position.y = 0; // Place it on the ground
+floor.receiveShadow = true;
+scene.add(floor);
+
+//================================================================
+// GUI Setup
+//================================================================
+const gui = new GUI();
+
+// Light Intensity Control
+const lightFolder = gui.addFolder('Lighting');
+const ambientLightControl = lightFolder.add(ambientLight, 'intensity', 0, 2).name('Ambient Light Intensity');
+const directionalLightControl = lightFolder.add(directionalLight, 'intensity', 0, 2).name('Directional Light Intensity');
+
+// Directional Light Direction Controls
+const lightDirectionFolder = gui.addFolder('Light Direction');
+const initialLightPosition = {
+  x: 50,
+  y: 50,
+  z: 50
 };
 
+// Set initial position of the directional light
+directionalLight.position.set(initialLightPosition.x, initialLightPosition.y, initialLightPosition.z);
 
-// Start the animation
-tick();
+// Initialize GUI controls for light position
+lightDirectionFolder.add(initialLightPosition, 'x', -50, 50).name('Light X Position').onChange((value) => {
+  directionalLight.position.x = value;
+});
+lightDirectionFolder.add(initialLightPosition, 'y', -50, 50).name('Light Y Position').onChange((value) => {
+  directionalLight.position.y = value;
+});
+lightDirectionFolder.add(initialLightPosition, 'z', -50, 50).name('Light Z Position').onChange((value) => {
+  directionalLight.position.z = value;
+});
+
+// Fog Controls
+const fogFolder = gui.addFolder('Fog');
+const fogIntensityControl = fogFolder.add({ fogDensity: fogDensity }, 'fogDensity', 0, 0.1).name('Fog Density').onChange((value) => {
+  scene.fog.density = value;
+});
+
+const fogColorControl = fogFolder.addColor({ fogColor: fogColor.getHex() }, 'fogColor').name('Fog Color').onChange((value) => {
+  scene.fog.color.set(value);
+});
+
+//================================================================
+// Initialize the GUI
+//================================================================
+lightFolder.close(); // Open the lighting folder
+lightDirectionFolder.close(); // Open the light direction folder
+fogFolder.close(); // Open the fog folder
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//================================================================
+// Camera Setup
+//================================================================
+camera.position.set(37, 116, 11); // Set camera position
+//30, 100, 5
+// Setup OrbitControls for environment editing
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.enableDamping = true;
+orbitControls.dampingFactor = 0.25;
+orbitControls.screenSpacePanning = false;
+orbitControls.zoomSpeed = false;
+orbitControls.minDistance = 10;
+orbitControls.maxDistance = 200;
+
+// Setup PointerLockControls for first-person movement
+const pointerLockControls = new PointerLockControls(camera, renderer.domElement);
+
+if (pointerLockControls && pointerLockControls.object instanceof THREE.Object3D) {
+  scene.add(pointerLockControls.object);
+} else {
+  console.error('PointerLockControls object is not valid');
+}
+scene.add(pointerLockControls.object);
+// Instantiate FPSControls
+const fpsControls = new FPSControls(camera, scene, pointerLockControls);
+///
+///
+
+//
+//
+//
+//
+
+let isFirstPerson = false;
+let isZombieMoving = false; // Track whether the zombie should move
+let zombieState = "patrolling"; // Initial state of the zombie
+
+const clock = new THREE.Clock();
+
+//================================================================
+// Screen Effects (Damage Overlay)
+//================================================================
+const damageOverlay = document.getElementById('damage-overlay');
+
+// Function to make the screen flicker red
+function triggerRedFlicker() {
+  let flickerCount = 0; // Count flickers
+  const maxFlickers = 5; // Total number of flickers
+
+  const interval = setInterval(() => {
+    damageOverlay.style.opacity = damageOverlay.style.opacity === '0' ? '1' : '0';
+    flickerCount++;
+    if (flickerCount >= maxFlickers * 2) {
+      clearInterval(interval);
+      damageOverlay.style.opacity = '0'; // Ensure it ends in a non-visible state
+    }
+  }, 100); // Flicker interval (in milliseconds)
+ 
+}
+
+const attackSound = new Audio('/sounds/Call of Duty Zombie Scream - Sound Effect  ProSounds.mp3'); // Add your attack sound file here
+// Increase the volume and ensure it plays strongly
+attackSound.volume = 1; // Max volume
+attackSound.playbackRate = 2; // Slightly increase playback speed for intensi
+function onZombieAttack() {
+  triggerRedFlicker();
+  console.log('Player attacked by zombie!');
+
+  // Play the attack sound
+  attackSound.play();
+
+  // Ensure the zombie doesn't tilt during the attack
+  zombie.rotation.x = 0;  // Reset X-axis rotation (no tilt)
+  zombie.rotation.z = 0;  // Reset Z-axis rotation (no tilt)
+
+  // Make the zombie's face face directly toward the camera when attacking
+  const directionToCamera = new THREE.Vector3();
+  directionToCamera.subVectors(camera.position, zombie.position).normalize();
+  
+  // Calculate the angle to rotate towards the camera (Y-axis rotation)
+  const angle = Math.atan2(directionToCamera.x, directionToCamera.z);  // Use directionToCamera here
+  zombie.rotation.y = angle;
+
+  // Trigger the attack animation here if any
+  // For example:
+  // zombieAnimation.play("attack_animation");
+
+  // Camera shake logic
+  const shakeDuration = 0.2; // Shake duration in seconds
+  const shakeMagnitude = 0.1; // Magnitude of shake (how far the camera moves)
+
+  const originalCameraPosition = camera.position.clone(); // Store the original position
+  const originalFOV = camera.fov; // Store the original FOV
+  
+  // Set the zoom effect (zoom in the camera)
+  const zoomDuration = 0.2; // Duration of zoom effect in seconds
+  const zoomMagnitude = 30; // The field of view to zoom into (smaller means more zoomed in)
+  camera.fov = zoomMagnitude; // Set the camera to zoom in
+
+  let shakeTime = 0;
+  let zoomTime = 0;
+
+  function shakeCamera() {
+    if (shakeTime < shakeDuration) {
+      // Apply random movement to the camera position
+      camera.position.x = originalCameraPosition.x + (Math.random() - 0.5) * shakeMagnitude;
+      camera.position.y = originalCameraPosition.y + (Math.random() - 0.5) * shakeMagnitude;
+      camera.position.z = originalCameraPosition.z + (Math.random() - 0.5) * shakeMagnitude;
+
+      shakeTime += 0.016; // Assume 60 FPS, so 1 frame = 0.016s
+      requestAnimationFrame(shakeCamera); // Continue shaking
+    } else {
+      // Restore the camera to its original position after the shake
+      camera.position.copy(originalCameraPosition);
+    }
+  }
+
+  function zoomCamera() {
+    if (zoomTime < zoomDuration) {
+      // Gradually zoom back to the original FOV
+      camera.fov = THREE.MathUtils.lerp(camera.fov, originalFOV, zoomTime / zoomDuration);
+      camera.updateProjectionMatrix(); // Update the camera's projection matrix to apply the FOV change
+
+      zoomTime += 0.016; // Assume 60 FPS, so 1 frame = 0.016s
+      requestAnimationFrame(zoomCamera); // Continue zooming
+    } else {
+      // Reset the camera's FOV after zoom effect
+      camera.fov = originalFOV;
+      camera.updateProjectionMatrix();
+    }
+  }
+  
+  // Start the shake and zoom effects
+  shakeCamera();
+  zoomCamera();
+}
+
+
+
+
+
+//================================================================
+// Zombie Movement (AI Behavior)
+//================================================================
+// Square boundaries (min and max coordinates)
+const minX = -40, maxX = 40;
+const minZ = -40, maxZ = 40;
+
+let currentTarget = new THREE.Vector3();  // Current target position for the zombie
+let isMovingToTarget = false;  // Flag to track if the zombie is moving to a new target
+const wanderDistance = 50; // Distance at which the zombie starts wandering
+
+// Update zombie state and movement
+//================================================================
+function updateZombie() {
+  if (zombie) {
+    const playerPosition = camera.position;
+    const zombiePosition = zombie.position;
+    const distanceToPlayer = playerPosition.distanceTo(zombiePosition);
+    const direction = new THREE.Vector3();
+    direction.subVectors(playerPosition, zombiePosition).normalize();
+
+
+
+
+
+
+    
+    switch (zombieState) {
+      case "patrolling":
+        patrolRandomly();
+        if (distanceToPlayer < 32) {
+          zombieState = "chasing"; // Start chasing if within range
+        }
+        break;
+
+      case "chasing":
+        chasePlayer(direction, distanceToPlayer);
+        if (distanceToPlayer < 5) {
+        
+          zombieState = "attacking"; // Attack if extremely close
+        } else if (distanceToPlayer > 50) {
+          zombieState = "patrolling"; // Return to patrol if too far away
+          isMovingToTarget = false;  // Reset movement flag to trigger new patrol target
+        } else if (distanceToPlayer > wanderDistance) {
+          zombieState = "wandering"; // Start wandering if player is far away
+        }
+        
+        break;
+
+      case "attacking":
+        onZombieAttack(); // Trigger red flicker effect when attacking
+        if (distanceToPlayer < 1) {
+          gameOver(); // Trigger game over if zombie catches player
+        } else if (distanceToPlayer > 30) {
+          zombieState = "chasing"; // Continue chasing if player is still close
+          damageOverlay.style.opacity = '0'; // Stop the red flicker when player is too far
+        } else if (distanceToPlayer > 5) {
+          zombieState = "chasing"; // Stop attacking and go back to chasing
+          damageOverlay.style.opacity = '0'; // Stop the red flicker
+        }
+        break;
+
+      case "wandering":
+        wanderRandomly();
+        if (distanceToPlayer < wanderDistance) {
+          zombieState = "chasing"; // Return to chasing if player is within range
+        }
+        break;
+    }
+  }
+}
+
+
+
+
+//================================================================
+// Game Over Effect
+//================================================================
+//================================================================
+// Game Over Effect with Delay
+//================================================================
+
+let gameOverState = false; // Track the game over state
+const gameoverSound = new Audio('/sounds/Game Over Sound Effect - SFX.mp3');  // Replace with actual path
+
+function gameOver() {
+  // Stop all animations
+  if (mixer) {
+    mixer.stopAllAction();  // Stop all animations
+  }
+
+ // Set the gameOverState flag to true
+gameOverState = true;
+
+// Add a delay before showing the "Game Over" message
+setTimeout(() => {
+  // Display "Game Over" message
+  const gameOverMessage = document.createElement('div');
+  gameoverSound.play();
+  gameOverMessage.style.position = 'absolute';
+  gameOverMessage.style.top = '50%';
+  gameOverMessage.style.left = '50%';
+  gameOverMessage.style.transform = 'translate(-50%, -50%)';
+  gameOverMessage.style.fontSize = '48px';
+  gameOverMessage.style.fontFamily = 'Courier New, Courier, monospace';
+  gameOverMessage.style.color = 'red';
+  gameOverMessage.style.fontWeight = 'bold';
+  gameOverMessage.innerText = 'GAME OVER\nPress Ctrl + R to restart';
+  document.body.appendChild(gameOverMessage);
+
+  // Create the image element
+  const gameOverImage = document.createElement('img');
+  gameOverImage.src = '/images/pics/bloodscreen.png'; // Correct image path
+  gameOverImage.style.position = 'absolute';
+  gameOverImage.style.position = 'fixed';
+  gameOverImage.style.top = '0';
+  gameOverImage.style.left = '0';
+  gameOverImage.style.width = '100%';
+  gameOverImage.style.height = '100%';
+  gameOverImage.style.filter = 'contrast(41)';
+  gameOverImage.style.mixBlendMode = 'multiply';
+  gameOverImage.style.zIndex = '-5'; // Set the z-index behind other elements
+  document.body.appendChild(gameOverImage); // Append the image to the body
+
+  // Listen for 'Ctrl + R' key press to restart the game
+  document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey && event.key === 'r') {
+      restartGame();  // Restart the game when Ctrl + R is pressed
+      document.body.removeChild(gameOverMessage);  // Remove the game over message
+      document.body.removeChild(gameOverImage);  // Remove the image as well
+    }
+  });
+}, 2000); // Delay for 2 seconds before showing the message
+
+// Play the key collection sound
+gameoverSound.play();
+}
+
+
+//================================================================
+// Game Restart Function
+//================================================================
+function restartGame() {
+  // Reset game state
+  zombie.position.set(-20, 0, -20); // Reset zombie position
+  camera.position.set(0, 14, 24); // Reset camera position
+  zombieState = "patrolling"; // Reset zombie state
+  isZombieMoving = true; // Enable zombie movement
+
+  // Restart the animation
+  if (mixer) {
+    mixer.stopAllAction();  // Stop any active animation
+    gltf.animations.forEach((clip) => {
+      mixer.clipAction(clip).play(); // Play animations again
+    });
+  }
+
+  // Additional reset logic (if needed)
+  // Reset the player's position, game variables, etc.
+
+  // You can call any necessary functions to reset the game scene here
+  // For example: resetPlayerPosition(), resetGameEnvironment(), etc.
+}
+
+
+// Patrol randomly within the square area
+function patrolRandomly() {
+  if (!isMovingToTarget) {
+    // Set a random target within the defined area
+    currentTarget.set(
+      Math.random() * (maxX - minX) + minX,  // Random x within the range
+      0,  // Y remains constant (since this is a flat 2D plane for movement)
+      Math.random() * (maxZ - minZ) + minZ   // Random z within the range
+    );
+    isMovingToTarget = true;  // Start moving to the new target
+  }
+
+  // Move zombie towards the target
+  const distanceToTarget = zombie.position.distanceTo(currentTarget);
+  
+  if (distanceToTarget < 1) {
+    // If the zombie reaches the target, stop moving and pick a new target
+    isMovingToTarget = false;
+    currentTarget.set(
+      Math.random() * (maxX - minX) + minX,  // Random x within the range
+      0,  // Y remains constant (since this is a flat 2D plane for movement)
+      Math.random() * (maxZ - minZ) + minZ   // Random z within the range
+    );
+  } else {
+    // Move towards the target
+    const direction = new THREE.Vector3();
+    direction.subVectors(currentTarget, zombie.position).normalize();
+
+    // Update zombie's rotation to face the target
+    const angle = Math.atan2(direction.x, direction.z);  // Calculate the angle
+    zombie.rotation.y = angle;  // Make the zombie face the target
+
+    const patrolSpeed = 0.04;  // Patrol speed
+    zombie.position.addScaledVector(direction, patrolSpeed);  // Move towards the target
+  }
+
+  // Optional: Randomly rotate slightly to simulate looking around
+  if (Math.random() < 0.04) {
+    zombie.rotation.y += (Math.random() - 0.5) * Math.PI / 4; // Randomly adjust rotation
+  }
+}
+
+
+// Chase the player
+function chasePlayer(direction, distanceToPlayer) {
+  if (distanceToPlayer < 10) {
+    zombie.position.addScaledVector(direction, 0.0040); // Speed up when closer to the player
+    zombie.lookAt(camera.position); // Always face the player
+
+    // Ensure zombie remains upright during chase
+    zombie.rotation.x = 10;  // Lock tilt on X-axis
+    zombie.rotation.z = 0;  // Lock tilt on Z-axis
+    
+    
+  }
+
+  // Ensure zombie stays on the ground (y = 0)
+  zombie.position.y = 0.8;
+}
+
+
+
+// Wander randomly within the defined area
+function wanderRandomly() {
+  if (!isMovingToTarget) {
+    // Set a random target within the defined area
+    currentTarget.set(
+      Math.random() * (maxX - minX) + minX,  // Random x within the range
+      0,  // Y remains constant (since this is a flat 2D plane for movement)
+      Math.random() * (maxZ - minZ) + minZ   // Random z within the range
+    );
+    isMovingToTarget = true;  // Start moving to the new target
+
+      if (Math.random() < 0.04) {
+    zombie.rotation.y += (Math.random() - 0.15) * Math.PI / 4; // Randomly adjust rotation
+  }
+  }
+
+  // Move zombie towards the target
+  const distanceToTarget = zombie.position.distanceTo(currentTarget);
+  
+  if (distanceToTarget < 1) {
+    // If the zombie reaches the target, stop moving and pick a new target
+    isMovingToTarget = false;
+    currentTarget.set(
+      Math.random() * (maxX - minX) + minX,  // Random x within the range
+      0,  // Y remains constant (since this is a flat 2D plane for movement)
+      Math.random() * (maxZ - minZ) + minZ   // Random z within the range
+    );
+  } else {
+    // Move towards the target
+    const direction = new THREE.Vector3();
+    direction.subVectors(currentTarget, zombie.position).normalize();
+
+    // Update zombie's rotation to face the target
+    const angle = Math.atan2(direction.x, direction.z);  // Calculate the angle
+    zombie.rotation.y = angle;  // Make the zombie face the target
+
+    const wanderSpeed = 0.05;  // Wander speed
+    zombie.position.addScaledVector(direction, wanderSpeed);  // Move towards the target
+  }
+
+  // Optional: Randomly rotate slightly to simulate looking around
+  if (Math.random() < 0.04) {
+    zombie.rotation.y += (Math.random() - 0.5) * Math.PI / 4; // Randomly adjust rotation
+  }
+}
+
+
+
+
+
+//================================================================
+// Character (Zombie) Setup
+//================================================================
+const loader = new GLTFLoader();
+let zombie, mixer;
+
+loader.load('/images/models/zombie_monster_slasher_necromorph.glb', (gltf) => {
+  zombie = gltf.scene;
+  zombie.scale.set(5, 5, 5);
+  zombie.position.set(-20, 0, -20); // Starting position of the zombie
+  zombie.castShadow = true;
+  zombie.receiveShadow = true;
+  scene.add(zombie);
+
+  // Initialize the animation mixer for the zombie
+  mixer = new THREE.AnimationMixer(zombie);
+
+  gltf.animations.forEach((clip) => {
+    mixer.clipAction(clip).play(); // Play animations
+  });
+});
+
+
+
+//================================================================
+// flood
+//================================================================
+
+let water;  // Declare water globally
+let waterMixer;  // Declare a global mixer variable
+
+loader.load('images/models/', (gltf) => {
+  water = gltf.scene;
+  water.scale.set(0.3, 0.3, 0.31);
+  water.position.set(20, 23, 20); // Starting position of the water
+  water.castShadow = true;
+  water.receiveShadow = true;
+  scene.add(water);
+
+  // Make the water darker by adjusting its material
+  water.traverse((child) => {
+    if (child.isMesh) {
+      // Set the color to a darker shade (e.g., dark blue or near black)
+      if (child.material) {
+        child.material.color = new THREE.Color(0x001a33); // Dark blue
+        child.material.emissive = new THREE.Color(0x000000); // No emissive light
+        child.material.needsUpdate = true; // Update the material
+      }
+    }
+  });
+
+  // Create an AnimationMixer if the model has animations
+  if (gltf.animations && gltf.animations.length) {
+    waterMixer = new THREE.AnimationMixer(water); // Initialize mixer inside if-block
+
+    gltf.animations.forEach((clip) => {
+      const action = waterMixer.clipAction(clip);
+      action.play(); // Play all animations
+      action.setEffectiveTimeScale(0.5); // Slow down the animation by setting time scale to 0.5 (50% speed)
+    });
+  }
+
+  // Optional: Log the object to check if it's been added to the camera
+  console.log(water);
+}, undefined, // Optional: onProgress callback
+function (error) { // onError callback
+  console.error('An error occurred while loading the model:', error);
+});
+
+
+
+
+
+
+
+
+//================================================================
+// Input and Controls
+//================================================================
+document.addEventListener('click', () => {
+  if (!isFirstPerson) {
+    pointerLockControls.lock(); // Enable first-person mode
+    isFirstPerson = true;
+  }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && isFirstPerson) {
+    pointerLockControls.unlock(); // Exit first-person mode
+    isFirstPerson = false;
+  }
+});
+
+const zombieSound = new Audio('/sounds/Zombie sound effect.mp3');
+zombieSound.loop = true; // Make sure the sound loops to continuously fade in/out
+
+function zombieFollowPlayer() {
+  if (isZombieMoving && zombie) {
+    const playerPosition = camera.position;
+    const zombiePosition = zombie.position;
+
+    const direction = new THREE.Vector3();
+    direction.subVectors(playerPosition, zombiePosition).normalize();
+
+    zombie.lookAt(playerPosition);
+
+    const distanceToPlayer = playerPosition.distanceTo(zombiePosition);
+
+    let speed = 0.017; // Base zombie speed
+
+    // Adjust volume based on distance (closer = louder)
+    let volume = 0;
+
+    if (distanceToPlayer <= 8) {
+      // At 8 units or less, volume is at maximum (1)
+      volume = 1;
+    } else if (distanceToPlayer > 8 && distanceToPlayer <= 20) {
+      // Between 8 and 20 units, volume stays high (near max)
+      volume = 1;
+    } else if (distanceToPlayer > 20 && distanceToPlayer <= 26) {
+      // Between 20 and 26 units, gradually fade out the sound
+      volume = Math.max(0, 1 - (distanceToPlayer - 20) / 6);
+    } else {
+      // Beyond 26 units, pause the sound and reset it
+      zombieSound.pause();
+      zombieSound.currentTime = 0; // Reset sound to the beginning
+      zombieSound.volume = 0; // No sound
+    }
+
+    // Apply the adjusted volume
+    if (distanceToPlayer <= 26) {
+      if (zombieSound.paused) {
+        zombieSound.play(); // Start the sound if not playing and player is in range
+      }
+      zombieSound.volume = volume;
+    }
+
+    // Adjust playback rate based on distance (closer = higher pitch)
+    const maxPlaybackRate = 1.5; // Maximum pitch (close)
+    const minPlaybackRate = 0.5; // Minimum pitch (far)
+    let playbackRate = THREE.MathUtils.mapLinear(
+      distanceToPlayer,
+      35, // max distance (far)
+      1,  // min distance (close)
+      minPlaybackRate,
+      maxPlaybackRate
+    );
+    playbackRate = THREE.MathUtils.clamp(playbackRate, minPlaybackRate, maxPlaybackRate);
+    zombieSound.playbackRate = playbackRate;
+
+    if (distanceToPlayer < 1) {
+      speed = 0.2; // Increase zombie speed when very close
+
+      // Attack player if extremely close
+      if (distanceToPlayer < 5) {
+        onZombieAttack(); // Trigger attack
+      }
+    }
+
+    // Move zombie towards the player
+    zombie.position.addScaledVector(direction, speed);
+  }
+}
+
+
+
+
+
+
+
+//================================================================
+// Candle Setup and Interactions
+//================================================================
+
+let lightObject;
+
+let pointLight; // For candle-like light
+
+
+// Load the .glb model for the candle
+loader.load(
+  '/images/models/copper_candlestick.glb',
+  function (gltf) {
+    lightObject = gltf.scene;
+
+    // Position and scale the model
+    lightObject.position.set(2.3, -4, -1.5);
+    lightObject.scale.set(21, 21, 21); 
+    lightObject.rotation.x = Math.PI / -23;
+
+    // Add the model to the camera
+    camera.add(lightObject);
+
+    // Create a yellow point light (simulating candle light)
+    pointLight = new THREE.PointLight(0xFFFF00, 1, 10); // Yellow light, intensity of 1, range 10
+    pointLight.position.set(0, 0, 0); // Place it at the camera's position
+    pointLight.scale.set(110, 110, 110); 
+    camera.add(pointLight);
+
+    // Create an AnimationMixer if the model has animations
+    if (gltf.animations && gltf.animations.length) {
+      mixer = new THREE.AnimationMixer(lightObject);
+      gltf.animations.forEach((clip) => {
+        mixer.clipAction(clip).play(); // Play all animations
+      });
+    }
+
+    // Optional: Log the object to check it's been added to the camera
+    console.log(lightObject);
+  },
+  undefined, // Optional: onProgress callback
+  function (error) { // onError callback
+    console.error('An error occurred while loading the model:', error);
+  }
+);
+
+
+
+
+
+
+
+
+//================================================================
+// Key Setup and Interactions
+//================================================================
+let hasKey = false;  // Flag to check if the player has the key
+let hasUsedKey = false;  // Flag to check if the key has been used
+let boundDoor = null;  // The specific door this key is bound to
+
+// Sound effect for collecting the key
+const keyCollectSound = new Audio('/sounds/key.mp3');  // Replace with actual path
+
+// Sound effect for opening the door
+const doorOpenSound = new Audio('/sounds/Door.mp3');  // Replace with actual path
+doorOpenSound.volume = 1.0;  // Set volume to maximum
+
+// Load the .glb model for the key
+let keyObject;
+loader.load('/images/models/metal_credit_card.glb', function (gltf) {
+  keyObject = gltf.scene; // The loaded key model
+  keyObject.position.set(-35, 3, 19);
+  keyObject.scale.set(0.4, 0.4, 0.4); // Adjust scale if needed
+  scene.add(keyObject);
+  keyObject.rotation.x = Math.PI / 2;
+}, undefined, function (error) {
+  console.error(error);
+});
+
+// Bind the key to a specific door
+function bindKeyToDoor(door) {
+  boundDoor = door;  // Assign the key to open this door
+}
+
+// Export functions for key-related interactions
+export function showKeyCollectNote() {
+  const keyCollectNote = document.getElementById('key-collect-note');
+  if (keyCollectNote) {
+    keyCollectNote.style.display = 'block';  // Show the key collect note
+  }
+}
+
+export function hideKeyCollectNote() {
+  const keyCollectNote = document.getElementById('key-collect-note');
+  if (keyCollectNote) {
+    keyCollectNote.style.display = 'none';  // Hide the key collect note
+  }
+}
+
+// Function to check proximity to key and show note
+function checkProximityToKey(playerPosition) {
+  if (keyObject) {
+    const keyPosition = keyObject.position.clone();
+    const distance = playerPosition.distanceTo(keyPosition);
+
+    if (distance < 5 && !hasKey) {  // Only show note if the player doesn't already have the key
+      showKeyCollectNote();
+      document.addEventListener('keydown', onKeyPress);
+    } else {
+      hideKeyCollectNote();
+    }
+  }
+}
+
+// Handle key press to collect the key
+function onKeyPress(event) {
+  if (event.key === 'c' && !hasUsedKey) {  // Only collect key if it hasn't been used yet
+    const distanceToKey = camera.position.distanceTo(keyObject.position);
+    if (distanceToKey < 15) {
+      onKeyCollected();
+      hideKeyCollectNote();
+      keyCollectSound.play();  // Play the sound when the key is collected
+    }
+  }
+}
+
+// Function to collect the key
+function onKeyCollected() {
+  if (keyObject) {
+    // Remove the key from its current position in the scene
+    scene.remove(keyObject);
+
+    // Attach the key to the camera
+    camera.add(keyObject);
+
+    // Position the key in front of the camera (e.g., 2 units forward, 0.5 units up)
+    keyObject.position.set(0.2, -0.5, -1); // Adjust as needed
+    
+    // Adjust the scale to make the key visible but not too large
+    keyObject.scale.set(0.3, 0.4, 0.3); // Fine-tune scale if needed
+  }
+
+
+  hasKey = true; // Update the flag
+
+  // Hide the key collect note
+  hideKeyCollectNote();
+
+  // Play the key collection sound
+  keyCollectSound.play();
+
+  // Show the key in the inventory UI (optional)
+  const keyImageContainer = document.getElementById('key-image-container');
+  if (keyImageContainer) {
+    keyImageContainer.style.display = 'block';
+  }
+}
+
+
+//================================================================
+// Door Setup and Interactions
+//================================================================
+
+// Load the texture for the door
+const doorTexture = textureLoader.load('/images/texture/moderndoor.jpg'); // Set your image path
+
+// Set the texture to repeat
+doorTexture.wrapS = THREE.RepeatWrapping;  // Repeat the texture on the X-axis
+doorTexture.wrapT = THREE.RepeatWrapping;  // Repeat the texture on the Y-axis
+
+// Adjust the number of times the texture repeats (adjust these values as needed)
+doorTexture.repeat.set(1, 1);  // Repeat the texture 2 times along X, 3 times along Y
+
+// Create a material with the loaded texture
+const doorMaterial = new THREE.MeshStandardMaterial({
+  map: doorTexture,  // Apply the texture to the material
+
+  side: THREE.DoubleSide  // Optionally, apply texture to both sides of the door
+});
+
+// Define the door geometry (size of the door)
+const doorGeometry = new THREE.BoxGeometry(3, 6, 0.2); // Width, height, depth of the door
+
+// Create the door mesh with the geometry and material
+const door = new THREE.Mesh(doorGeometry, doorMaterial);
+
+// Position the door in your scene (adjust position as needed)
+door.position.set(24, 4,44); // Example position (x, y, z)
+door.rotation.y = Math.PI / -2;
+door.scale.set(3,2, 7); // Example position (x, y, z)
+
+// Add the door to the scene
+scene.add(door);
+
+// Bind the key to this door
+bindKeyToDoor(door);
+
+let doorOpen = false; // Flag to track if the door is open
+
+function checkProximityToDoor(playerPosition) {
+  const doorPosition = door.position.clone();
+  const distanceToDoor = playerPosition.distanceTo(doorPosition);
+
+  if (distanceToDoor < 10) { // You can adjust the distance to your needs
+    if (hasKey && !doorOpen && !hasUsedKey && boundDoor === door) {  // Ensure the key is bound to this door
+      // Display a prompt to open the door if the player has the key
+      showDoorOpenNote();  // Function to show a prompt on the screen (optional)
+      document.addEventListener('keydown', onDoorPress);
+    } else {
+      // Display a different message if the player doesn't have the key
+      showNoKeyNote();  // Function to show a "no key" message
+      document.removeEventListener('keydown', onDoorPress);
+    }
+  } else {
+    hideDoorNote();  // Hide the door prompt when not close
+    document.removeEventListener('keydown', onDoorPress);
+  }
+}
+
+// Handle "E" key press to open the door
+function onDoorPress(event) {
+  if (event.key === 'e') {
+    if (hasKey && !hasUsedKey && boundDoor === door) {  // Only open this specific door with the key
+      openDoor();  // Function to open the door
+      doorOpenSound.play();  // Play the sound when the door opens
+    } else {
+      alert('You need the correct key to open the door!');  // Alert if the player doesn't have the key or tries to open the wrong door
+    }
+  }
+}
+
+function openDoor() {
+  if (doorOpen) return; // Prevent reopening if already open
+  doorOpen = true;
+
+  // Animate the door's position to simulate it opening
+  const doorTargetPosition = door.position.clone();
+  doorTargetPosition.z -= 5.4; // Move the door 5 units to the left (adjust as needed)
+  
+  const animationDuration = 1; // 1-second animation
+  let startTime = performance.now();
+
+  function animateDoor() {
+    const elapsedTime = (performance.now() - startTime) / 50000; // Time elapsed in seconds
+    if (elapsedTime < animationDuration) {
+      // Lerp (smooth transition) between current position and target position
+      door.position.lerp(doorTargetPosition, elapsedTime / animationDuration);
+      requestAnimationFrame(animateDoor);
+    } else {
+      // Ensure the door ends up at the final position
+      door.position.copy(doorTargetPosition);
+    }
+  }
+
+  animateDoor();
+
+  // Play door open sound
+  doorOpenSound.play();
+
+  // Mark the key as used
+  hasUsedKey = true;
+
+  // Remove the key from the camera and scene
+  if (keyObject) {
+    camera.remove(keyObject); // Detach from the camera
+    keyObject = null; // Fully remove the key reference
+    const keyImageContainer = document.getElementById('key-image-container');
+  if (keyImageContainer) {
+    keyImageContainer.style.display = 'none';  // Hide the key image
+  }
+  }
+
+  // Hide the inventory image
+  hideKeyImage();
+}
+
+
+// Show the door prompt
+function showDoorOpenNote() {
+  const doorNote = document.getElementById('door-open-note');
+  if (doorNote) {
+    doorNote.style.display = 'block';  // Show the "Press E to open the door" note
+  }
+}
+
+// Hide the door prompt
+function hideDoorNote() {
+  const doorNote = document.getElementById('door-open-note');
+  if (doorNote) {
+    doorNote.style.display = 'none';  // Hide the door prompt
+  }
+}
+
+// Show the "no key" message
+function showNoKeyNote() {
+  const noKeyNote = document.getElementById('no-key-note');
+  if (noKeyNote) {
+    noKeyNote.style.display = 'block';  // Show "You need the key" note
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//================================================================
+// Ceiling Light Setup (Completely Black)
+//================================================================
+// Ceiling Light Setup (Static, No Animation, No Effects)
+let sparkceiling, material;
+
+// Load the GLB model of the ceiling light
+loader.load('/images/models/', (gltf) => {
+  sparkceiling = gltf.scene;
+  sparkceiling.scale.set(17, 15, 15); // Set the scale of the ceiling light
+  sparkceiling.position.set(34, 18.510, -14); // Set the position of the ceiling light
+  
+  // Rotate the ceiling light to face the opposite direction (downwards)
+  sparkceiling.rotation.x = Math.PI; // Rotate 180 degrees around the X-axis
+  sparkceiling.rotation.y = Math.PI/2; // Rotate 180 degrees around the X-axis
+  sparkceiling.castShadow = true;  // Enable casting shadow
+  sparkceiling.receiveShadow = true;  // Enable receiving shadow
+  scene.add(sparkceiling);
+
+  // Assuming the model has one child (the material you want to modify)
+  material = sparkceiling.children[0].material;
+
+  // Simulate the exposure effect by adjusting material properties
+  material.emissive.setHex(0x000000); // Turn off any emissive light (black)
+  material.color.setHex(0x111111); // Set the color to a very dark tone (simulate lower exposure)
+  material.metalness = 0.5; // Set metalness to 0.5 (slightly reflective)
+  material.roughness = 0.9; // Set roughness to a high value (less reflective)
+
+  // Optional: Further dim the model by reducing the intensity of the material
+  material.emissiveIntensity = 0.1; // Reduce emissive intensity for a dimmer effect
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Import necessary Three.js components
+
+import TWEEN from '@tweenjs/tween.js';
+
+// Initialize audio elements for each action with max volume
+const wrongPasswordSound = new Audio('/sounds/Sound effect WRONG ANSWER.mp3');
+const correctPasswordSound = new Audio('/sounds/Correct answer Sound effect.mp3');
+const typingSound = new Audio('/sounds/enter button on a keyboard sound effect (royalty free).mp3');
+const deviceInteractionSound = new Audio('/sounds/90s PC boot sequence with sound HD.mp3');
+const doorOpenSound1 = new Audio('/sounds/Faction Vault Door Open (Fortnite Sound) - Sound Effect for editing.mp3');  // Path to the door open sound effect
+
+
+
+
+wrongPasswordSound.volume = 1.0;
+correctPasswordSound.volume = 1.0;
+typingSound.volume = 1.0;
+deviceInteractionSound.volume = 1.0;
+doorOpenSound1.volume = 1.0;  // Set volume to maximum
+
+
+// Create the password door and device
+let passwordDoor, passwordDevice;
+let correctPassword = "1532";  // Correct password
+let enteredPassword = "";  // Holds the player's input
+let isInteracting = false;  // To check if the player is interacting
+let interactionUI;  // UI elements for instructions
+let inputDiv;  // Password input div
+let playerPosition;  // Store player's position for distance check
+let deviceInteracted = false;  // To track if the device has been interacted with already
+
+const customDoorTexture = textureLoader.load('/images/texture/glass.jpg');  // Set your image path
+
+// Set texture wrapping
+customDoorTexture.wrapS = THREE.RepeatWrapping;  // Repeat the texture on the X-axis
+customDoorTexture.wrapT = THREE.RepeatWrapping;  // Repeat the texture on the Y-axis
+
+// Adjust the number of times the texture repeats
+customDoorTexture.repeat.set(1, 1);  // Repeat the texture 1 time along X, 1 time along Y
+
+// Create material with transparency and smoothness
+const customDoorMaterial = new THREE.MeshStandardMaterial({
+  map: customDoorTexture,        // Apply the texture
+  transparent: true,             // Enable transparency
+  opacity: 0.7,                  // Set semi-transparency (adjust 0 to 1 for desired effect)
+  roughness: 0,                  // Make the material completely smooth
+  side: THREE.DoubleSide         // Apply the texture to both sides
+});
+
+// Define geometry for the door
+const customDoorGeometry = new THREE.BoxGeometry(1, 3, 0.2); // Width, height, depth of the door
+
+// Create the door mesh
+const texturedPasswordDoor = new THREE.Mesh(customDoorGeometry, customDoorMaterial);
+
+// Position and scale the door
+texturedPasswordDoor.position.set(23, 7, -42); // Same position as the original door
+texturedPasswordDoor.rotation.y = Math.PI / 2;
+texturedPasswordDoor.scale.set(16, 6, 4);  // Example scale (width, height, depth)
+
+// Add the door to the scene
+scene.add(texturedPasswordDoor);
+
+
+
+const modelPath = '/images/models/simple_mini-atm.glb';  // Path to your .glb file
+
+// Initialize passwordDevice as null initially
+passwordDevice = null;
+
+// Load the .glb model and add it to the scene
+loader.load(modelPath, function (gltf) {
+  passwordDevice = gltf.scene;
+  passwordDevice.scale.set(0.0030, 0.0030, 0.0030); 
+  passwordDevice.position.set(27, 6, -49.2); 
+  passwordDevice.rotation.y = Math.PI / -2;
+  scene.add(passwordDevice);
+  console.log("Green device manager loaded");
+}, undefined, function (error) {
+  console.error("Error loading the GLTF model:", error);
+});
+
+// Create the UI instructions (hidden initially)
+function createInteractionUI() {
+  interactionUI = document.createElement('div');
+  interactionUI.style.position = 'absolute';
+  interactionUI.style.top = '10px';
+  interactionUI.style.left = '50%';
+  interactionUI.style.transform = 'translateX(-50%)';
+  interactionUI.style.color = 'white';
+  interactionUI.style.fontSize = '20px';
+  interactionUI.style.fontFamily = 'Arial, sans-serif';
+  interactionUI.innerHTML = ""; // Initially empty
+  document.body.appendChild(interactionUI);
+}
+createInteractionUI();
+
+// Handle key events for interaction
+let typingTimeout;  // Timer for typing sound
+function handleKeyPress(event) {
+  if (event.key === 'e' && !isInteracting && !deviceInteracted) {
+    if (isNearDevice()) {
+      startPasswordInput();
+      playDeviceInteractionSound();  // Play device interaction sound
+    }
+  } else if (event.key === 'q' && isInteracting) {
+    quitInteraction();
+    playDeviceInteractionSound();  // Play device interaction sound when closing
+  } else if (isInteracting && event.key >= '0' && event.key <= '9') {
+    enteredPassword += event.key;
+    updatePasswordDisplay();
+    playTypingSound();  // Play typing sound for entering password
+    resetTypingSoundTimeout();  // Reset typing sound timeout to continue playing
+  } else if (isInteracting && event.key === 'Enter') {
+    validatePassword(enteredPassword);
+  } else if (isInteracting && event.key === 'Backspace') {
+    enteredPassword = enteredPassword.slice(0, -1);
+    updatePasswordDisplay();
+    playTypingSound();  // Play typing sound for backspace
+    resetTypingSoundTimeout();  // Reset typing sound timeout to continue playing
+  }
+}
+window.addEventListener('keydown', handleKeyPress);
+
+// Handle mouse interaction (detect if player is looking at the device)
+function onMouseMove(event) {
+  const mouse = new THREE.Vector2();
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(mouse, camera);
+
+  const intersects = raycaster.intersectObjects([passwordDevice]);
+
+  if (intersects.length > 0 && !isInteracting && isNearDevice() && !deviceInteracted) {
+    interactionUI.innerHTML = "Press E to Interact with the Device Manager";  // Show instructions if near device
+  } else if (intersects.length === 0 && !isInteracting) {
+    interactionUI.innerHTML = "";  // Clear instructions when not near the device
+  }
+}
+window.addEventListener('mousemove', onMouseMove);
+
+// Check if player is near the device (within 15 tiles, assuming each tile is 1 unit in 3D space)
+function isNearDevice() {
+  if (!passwordDevice) return false;  // Make sure the device is loaded
+
+  playerPosition = camera.position;
+  const devicePosition = passwordDevice.position;
+  const distance = playerPosition.distanceTo(devicePosition);
+  console.log("Distance to device:", distance);  // Log the distance to the device
+  return distance <= 8;  // 8 units distance check (adjust as needed)
+}
+
+// Start the password input process
+function startPasswordInput() {
+  isInteracting = true;
+  playDeviceInteractionSound();  // Play sound for interaction
+  interactionUI.innerHTML = "Enter Password:";
+
+  inputDiv = document.createElement('div');
+  inputDiv.style.position = 'absolute';
+  inputDiv.style.top = '50%';
+  inputDiv.style.left = '50%';
+  inputDiv.style.transform = 'translate(-50%, -50%)';
+  inputDiv.style.backgroundColor = 'rgba(0,0,0,0.8)';
+  inputDiv.style.padding = '20px';
+  inputDiv.style.borderRadius = '10px';
+  inputDiv.style.color = 'white';
+  inputDiv.style.fontFamily = 'fantasy';  // Set font to fantasy
+  inputDiv.innerHTML = ` 
+    <p style="font-size: 30px;">Entered Password: ${enteredPassword}</p>
+    <p>Press Enter to Submit</p>
+  `;
+  document.body.appendChild(inputDiv);
+}
+
+// Update the password display (show the entered password)
+function updatePasswordDisplay() {
+  if (inputDiv) {
+    inputDiv.innerHTML = ` 
+      <p style="font-size: 30px; color: ${isCorrectPassword() ? 'green' : 'red'};">Entered Password: ${enteredPassword}</p>
+      <p>Press Enter to Submit</p>
+    `;
+  }
+}
+
+// Validate the entered password
+function validatePassword(password) {
+  console.log("Entered Password:", password);  // Debugging the entered password
+  if (password === correctPassword) {
+    openPasswordDoor();
+    showPasswordMessage(true);
+    playCorrectPasswordSound();  // Play correct password sound
+    setTimeout(() => quitInteraction(), 2000); // Delay before quitting interaction
+    deviceInteracted = true;
+  } else {
+    showPasswordMessage(false);
+    playWrongPasswordSound();  // Play wrong password sound
+    enteredPassword = ""; // Reset password input to try again
+  }
+}
+
+// Check if the entered password is correct
+function isCorrectPassword() {
+  return enteredPassword === correctPassword;
+}
+
+// Show password validation message with styling
+function showPasswordMessage(isCorrect) {
+  const messageDiv = document.createElement('div');
+  messageDiv.style.position = 'absolute';
+  messageDiv.style.top = '60%';
+  messageDiv.style.left = '50%';
+  messageDiv.style.transform = 'translateX(-50%)';
+  messageDiv.style.color = isCorrect ? 'green' : 'red';
+  messageDiv.style.fontFamily = 'fantasy';
+  messageDiv.style.fontSize = '30px';
+  messageDiv.style.textAlign = 'center';
+  
+  if (isCorrect) {
+    messageDiv.innerHTML = "Correct! Password accepted. Door is open.";
+  } else {
+    messageDiv.innerHTML = "Wrong password! Try again.";
+  }
+
+  document.body.appendChild(messageDiv);
+
+  // Remove the message after 3 seconds
+  setTimeout(() => {
+    document.body.removeChild(messageDiv);
+  }, 3000);
+}
+
+// Open the password door (trigger animation or door movement)
+// Open the password door (trigger animation or door movement)
+function openPasswordDoor() {
+  // Play the door sound only if it's not already playing
+  if (doorOpenSound1.paused || doorOpenSound1.ended) {
+    doorOpenSound1.play();
+  }
+
+  // Animate the door opening (slide the door very slightly upward on the y-axis)
+  const openDoorAnimation = new TWEEN.Tween(texturedPasswordDoor.position)
+    .to({ y: texturedPasswordDoor.position.y + 11 }, 6000)  // Slide the door by a very small amount on the y-axis
+    .easing(TWEEN.Easing.Quadratic.Out)
+    .start();
+
+  // Ensure the sound plays for the duration of the door opening animation
+  setTimeout(() => {
+    // Stop the sound after the animation is complete
+    doorOpenSound1.pause();
+    doorOpenSound1.currentTime = 0;  // Reset sound to the beginning
+  }, 6000); // Match this duration with the animation time (6000ms)
+}
+
+
+// Quit the interaction (if the player presses Q)
+function quitInteraction() {
+  isInteracting = false;
+  enteredPassword = ""; // Reset password input
+  interactionUI.innerHTML = "";  // Hide the interaction prompt
+  
+  // Stop the device interaction sound if it's playing
+  if (!deviceInteractionSound.paused) {
+    deviceInteractionSound.pause();
+    deviceInteractionSound.currentTime = 0;  // Reset sound to the beginning
+  }
+  
+  if (inputDiv) {
+    document.body.removeChild(inputDiv);
+  }
+}
+
+// Update the interaction UI based on proximity to the device
+function updateInteractionUI() {
+  if (passwordDevice && isNearDevice() && !isInteracting && !deviceInteracted) {
+    interactionUI.innerHTML = "Press E to Interact with the Device Manager";  // Show message when near
+  } else if (!isNearDevice() || deviceInteracted) {
+    interactionUI.innerHTML = "";  // Hide message when not near or already interacted
+  }
+}
+
+// Define sound functions outside the animate loop
+function playWrongPasswordSound() {
+  wrongPasswordSound.play();
+}
+
+function playCorrectPasswordSound() {
+  correctPasswordSound.play();
+}
+
+function playTypingSound() {
+  if (typingTimeout) clearTimeout(typingTimeout);  // Stop any previous typing sound
+  typingSound.play();
+}
+
+function stopTypingSound() {
+  typingSound.pause();
+  typingSound.currentTime = 0;  // Reset sound to start
+}
+
+function resetTypingSoundTimeout() {
+  if (typingTimeout) clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(stopTypingSound, 1000);  // Stop sound if no typing happens in 1 second
+}
+
+function playDeviceInteractionSound() {
+  deviceInteractionSound.play();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//================================================================
+// Animation Loop
+//================================================================
+function animate() {
+  if (gameOverState) return; // Stop everything if the game is over
+
+  requestAnimationFrame(animate);
+  TWEEN.update();  // Ensure TWEEN animations are updated in the loop
+  updateInteractionUI(); // Check proximity to device and update UI
+
+  const delta = clock.getDelta();
+
+  // Update any animations that are playing
+  if (mixer) mixer.update(delta); // Update zombie animation mixer, if exists
+  if (waterMixer) waterMixer.update(delta); // Update water animation mixer, if exists
+
+  updateZombie(); // Update zombie behavior
+
+  const playerPosition = camera.position;
+  checkProximityToKey(playerPosition);
+  checkProximityToDoor(playerPosition);
+
+  // Player's distance to the password device
+  if (isNearDevice() && !isInteracting) {
+    interactionUI.innerHTML = "Press E to Interact with the Device Manager"; // Prompt to interact
+  }
+
+  // If in first-person mode, allow zombie interaction
+  if (isFirstPerson) {
+    const distanceToZombie = camera.position.distanceTo(zombie.position);
+    if (distanceToZombie < 100) {
+      zombieFollowPlayer(); // Update zombie to follow player
+    }
+
+    // Ensure pointer lock is engaged before updating first-person controls
+    if (pointerLockControls.isLocked) {
+      fpsControls.update(delta); // Update first-person controls if pointer is locked
+    } else {
+      pointerLockControls.lock(); // Lock pointer if not already locked
+    }
+  } else {
+    orbitControls.update(); // Update orbit controls
+  }
+
+  // Add the flickering candlelight effect
+  if (pointLight) {
+    pointLight.intensity = Math.random() * 0.5 + 0.5; // Flickering effect
+  }
+
+  // Handle animation and render the scene
+  renderer.render(scene, camera);
+
+  // Add the flickering candlelight effect
+  if (pointLight) {
+    pointLight.intensity = Math.random() * 0.5 + 0.5; // Flickering effect
+  }
+
+  // Handle animation and render the scene
+  renderer.render(scene, camera);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// SCreate additional elements (e.g., chairs)
+ 
+
+//createChair(scene);
+     //createdesk(scene);
+     //createaircon(scene);
+   // createblood(scene);
+      //createflower(scene);
+      //createframe(scene);
+      //createdispenser(scene);
+    //  created_design1(scene);
+   // created_design2(scene);
+    created_design3(scene);
+    created_floor(scene);
+    //created_hallchairs(scene);
+    //created_fence(scene);
+    created_cheaproom(scene);
+    //created_ceiling(scene);
+    //created_nearstatue(scene);
+
+    
+    created_statue(scene)
+  
+//SPAWN POINT-------------------------------------------------------------------
+// First wall (with texture)
+loadWall(scene, { x: 45, y: 2, z: 25 }, '/images/texture/tile.jpg'); // Apply texture to the first wall
+
+// Second wall (with 180° rotation and texture)
+loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {
+  wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall
+                     
+  wallLeft.scale.set(0.453, 1, 2); // Shrink width to create space for the door
+  wallLeft.position.set(24, 2, 33.6); // Adjust position to the left side
+});
+//left
+loadWall(scene, { x: 20, y: 2, z: 20 }, '/images/texture/tile.jpg').then(wallLeft => {
+  wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall                 
+  wallLeft.scale.set(0.1, 0.5, 2); // Shrink width to create space for the door
+  wallLeft.position.set(24, 2, 50); // Adjust position to the left side
+});
+//top
+loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/tile.jpg').then(wallRight => {
+  wallRight.rotation.y = Math.PI / 2; // Rotate right segment of the wall
+  wallRight.scale.set(0.3, 0.4, 2); // Shrink width to create space for the door
+  wallRight.position.set(24, 16, 45); // Adjust position to the right side
+});
+//ceiling room
+loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/tile.jpg').then(wallRight => {
+  wallRight.rotation.x = Math.PI / 2; // Rotate right segment of the wall
+  wallRight.scale.set(0.8, 1, 0.5); // Shrink width to create space for the door
+  wallRight.position.set(42, 13.4, 45); // Adjust position to the right side
+});
+//carpet
+loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/carpet2.jpg').then(wallRight => {
+  wallRight.rotation.x = Math.PI / 2; // Rotate right segment of the wall
+  wallRight.scale.set(0.4, 0.5, 0.2); // Shrink width to create space for the door
+  wallRight.position.set(37, -0, 35); // Adjust position to the right side
+});
+
+//OFFICE AREA-------------------------------------------------------------------
+
+//right wall second path
+loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {
+  wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall
+                     
+  wallLeft.scale.set(1.2, 1, 2); // Shrink width to create space for the door
+  wallLeft.position.set(24, 2, 17); // Adjust position to the left side
+});
+//left wall second path
+loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {
+  wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall
+                     
+  wallLeft.scale.set(0.5, 1, 2); // Shrink width to create space for the door
+  wallLeft.position.set(24, 2, -24); // Adjust position to the left side
+});
+
+//top second path
+loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/tile.jpg').then(wallRight => {
+  wallRight.rotation.y = Math.PI / 2; // Rotate right segment of the wall
+  wallRight.scale.set(2, 0.4, 2); // Shrink width to create space for the door
+  wallRight.position.set(24, 22, -11); // Adjust position to the right side
+});
+//entrance wall
+loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {                
+  wallLeft.scale.set(0.453, 1, 2); // Shrink width to create space for the door
+  wallLeft.position.set(22, 2, 23.6); // Adjust position to the left side
+});
+//entrance wall 2
+loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {   
+               
+  wallLeft.scale.set(0.5, 1, 2); // Shrink width to create space for the door
+  wallLeft.position.set(14, 2, -30); // Adjust position to the left side
+});
+
+
+
+animate();

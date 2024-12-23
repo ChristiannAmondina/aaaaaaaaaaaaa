@@ -35,6 +35,7 @@ class FPSControls {
   constructor(camera, scene, pointerLockControls) {
     this.camera = camera;
     this.scene = scene;
+    
     this.pointerLockControls = pointerLockControls;
 
     if (!this.pointerLockControls || !this.pointerLockControls.object) {
@@ -43,10 +44,7 @@ class FPSControls {
     }
 
     // Ensure pointerLockControls is initialized and object is set
-    if (!this.pointerLockControls?.object) {
-      console.error("PointerLockControls object is not initialized correctly.");
-      return;
-    }
+   
 
     this.velocity = new THREE.Vector3(0, 0, 0);
     this.acceleration = new THREE.Vector3(250, 2130, 250);
@@ -657,8 +655,13 @@ orbitControls.maxDistance = 200;
 
 // Setup PointerLockControls for first-person movement
 const pointerLockControls = new PointerLockControls(camera, renderer.domElement);
-scene.add(pointerLockControls.object);
 
+if (pointerLockControls && pointerLockControls.object instanceof THREE.Object3D) {
+  scene.add(pointerLockControls.object);
+} else {
+  console.error('PointerLockControls object is not valid');
+}
+scene.add(pointerLockControls.object);
 // Instantiate FPSControls
 const fpsControls = new FPSControls(camera, scene, pointerLockControls);
 ///
@@ -1766,6 +1769,23 @@ function onMouseMove(event) {
     interactionUI.innerHTML = "";  // Clear instructions when not near the device
   }
 }
+
+
+if (passwordDevice) {
+  const intersects = raycaster.intersectObjects([passwordDevice]);
+
+  if (intersects.length > 0 && !isInteracting && isNearDevice() && !deviceInteracted) {
+    interactionUI.innerHTML = "Press E to Interact with the Device Manager";  // Show instructions if near device
+  } else if (intersects.length === 0 && !isInteracting) {
+    interactionUI.innerHTML = "";  // Clear instructions when not near the device
+  }
+} else {
+  console.error("Password device is not defined!");
+}
+
+
+
+
 window.addEventListener('mousemove', onMouseMove);
 
 // Check if player is near the device (within 15 tiles, assuming each tile is 1 unit in 3D space)
