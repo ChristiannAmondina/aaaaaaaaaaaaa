@@ -661,6 +661,9 @@ if (pointerLockControls && pointerLockControls.object instanceof THREE.Object3D)
 } else {
   console.error('PointerLockControls object is not valid');
 }
+
+
+
 scene.add(pointerLockControls.object);
 // Instantiate FPSControls
 const fpsControls = new FPSControls(camera, scene, pointerLockControls);
@@ -1970,8 +1973,6 @@ function playDeviceInteractionSound() {
 
 
 
-
-
 //================================================================
 // Animation Loop
 //================================================================
@@ -2027,17 +2028,7 @@ function animate() {
 
   // Handle animation and render the scene
   renderer.render(scene, camera);
-
-  // Add the flickering candlelight effect again (if required)
-  if (pointLight) {
-    pointLight.intensity = Math.random() * 0.5 + 0.5; // Flickering effect
-  }
-
-  // Handle animation and render the scene again
-  renderer.render(scene, camera);
 }
-
-
 
 
 
