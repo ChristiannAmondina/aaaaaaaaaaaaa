@@ -5,6 +5,13 @@ export class FPSControls {
     this.camera = camera;
     this.scene = scene;
     this.pointerLockControls = pointerLockControls;
+
+     // Ensure pointerLockControls is initialized and object is set
+     if (!this.pointerLockControls?.object) {
+      console.error("PointerLockControls object is not initialized correctly.");
+      return;
+  }
+
     this.velocity = new THREE.Vector3(0, 0, 0);
     this.acceleration = new THREE.Vector3(250, 2130, 250);
     this.deceleration = new THREE.Vector3(-10, -55, -10); // WeaffollowPlayerker gravity
@@ -123,7 +130,9 @@ export class FPSControls {
     const targetPosition = new THREE.Vector3(-61, 4, -40); // The target position
     const tolerance = 4; // Tolerance to account for small differences in position
 
-    const position = this.pointerLockControls.object.position;
+
+    
+    const position = this.pointerLockControls.object.position;////////////////////////
 
     // Check if the player is within the target position (with tolerance)
     if (
@@ -238,7 +247,7 @@ export class FPSControls {
   
     // Create the image element
     const imageElement = document.createElement('img');
-    imageElement.src = '/images/texture/test.jpg'; // Path to your image
+    //imageElement.src = '/images/texture/test.jpg'; // Path to your image
     imageElement.style.position = 'absolute';
     imageElement.style.top = '50%';
     imageElement.style.left = '50%';
