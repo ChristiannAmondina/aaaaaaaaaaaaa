@@ -28,6 +28,72 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 
 
+//================================================================
+// Scene Setup
+//================================================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x2f303d); // Default white background
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('webgl-container').appendChild(renderer.domElement);
+
+
+//================================================================
+// TextureLoader
+//================================================================
+const textureLoader = new THREE.TextureLoader();
+
+
+//================================================================
+// Fog Setup
+//================================================================
+//0.0080
+let fogDensity = 0; // Adjusted density for fog
+let fogColor = new THREE.Color(0xaaaaaa); // Set initial fog color (light gray)
+scene.fog = new THREE.FogExp2(fogColor, fogDensity); // Exponential fog (color, density)
+
+//================================================================
+// Lighting Setup
+//================================================================
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.1); // Ambient light to illuminate all objects
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0x635900, 0.010); // White directional light
+directionalLight.position.set(-15.36, -50, 50).normalize(); // Light source position
+scene.add(directionalLight);
+
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // For softer shadows
+// Create a DirectionalLight with yellow color and intensity 1
+
+
+
+
+
+
+
+
+
+const localizedDirectionalLight = new THREE.DirectionalLight(0xffcc00, 1.0);
+
+// Position it in your specific area
+localizedDirectionalLight.position.set(-15.36, -50, 50); // Position it at (-115, -39, -40)
+
+// Set the light's target to the area you want to illuminate
+localizedDirectionalLight.target.position.set(29, 7, -28); // Focus it downward toward the ground
+
+// Enable shadows for more localized effects
+localizedDirectionalLight.castShadow = true;
+localizedDirectionalLight.shadow.mapSize.width = 1024;  // Higher value for better resolution
+localizedDirectionalLight.shadow.mapSize.height = 1024;
+localizedDirectionalLight.shadow.camera.near = 0.1;  // Set the shadow camera near
+localizedDirectionalLight.shadow.camera.far = 500;  // Set the shadow camera far (to control distance)
+
+// Add the light to the scene
+scene.add(localizedDirectionalLight);
+scene.add(localizedDirectionalLight.target);
+
 
 
 // --- FPSControls Class Definition ---
@@ -285,259 +351,6 @@ class FPSControls {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//================================================================
-// Scene Setup
-//================================================================
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x2f303d); // Default white background
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.getElementById('webgl-container').appendChild(renderer.domElement);
-
-
-//================================================================
-// TextureLoader
-//================================================================
-const textureLoader = new THREE.TextureLoader();
-
-
-//================================================================
-// Fog Setup
-//================================================================
-//0.0080
-let fogDensity = 0; // Adjusted density for fog
-let fogColor = new THREE.Color(0xaaaaaa); // Set initial fog color (light gray)
-scene.fog = new THREE.FogExp2(fogColor, fogDensity); // Exponential fog (color, density)
-
-//================================================================
-// Lighting Setup
-//================================================================
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.1); // Ambient light to illuminate all objects
-scene.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(0x635900, 0.010); // White directional light
-directionalLight.position.set(-15.36, -50, 50).normalize(); // Light source position
-scene.add(directionalLight);
-
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; // For softer shadows
-// Create a DirectionalLight with yellow color and intensity 1
-
-
-
-
-
-
-
-
-
-const localizedDirectionalLight = new THREE.DirectionalLight(0xffcc00, 1.0);
-
-// Position it in your specific area
-localizedDirectionalLight.position.set(-15.36, -50, 50); // Position it at (-115, -39, -40)
-
-// Set the light's target to the area you want to illuminate
-localizedDirectionalLight.target.position.set(29, 7, -28); // Focus it downward toward the ground
-
-// Enable shadows for more localized effects
-localizedDirectionalLight.castShadow = true;
-localizedDirectionalLight.shadow.mapSize.width = 1024;  // Higher value for better resolution
-localizedDirectionalLight.shadow.mapSize.height = 1024;
-localizedDirectionalLight.shadow.camera.near = 0.1;  // Set the shadow camera near
-localizedDirectionalLight.shadow.camera.far = 500;  // Set the shadow camera far (to control distance)
-
-// Add the light to the scene
-scene.add(localizedDirectionalLight);
-scene.add(localizedDirectionalLight.target);
-
-
-//================================================================
-// Sound Setup with Auto-Play Attempt
-//================================================================
-let audioContext;
-
-document.addEventListener('click', function() {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  // Resume the AudioContext if it's suspended
-  if (audioContext.state === 'suspended') {
-    audioContext.resume();
-  }
-
-  // Now you can safely start playing audio
-  playAudio();
-});
-
-// Function to play three audio files at once, looping indefinitely
-function playAudio() {
-  const audio1 = new Audio('sounds/).');
-  const audio2 = new Audio('sounds/).'); // Second audio file
-  const audio3 = new Audio('sounds/'); // Third audio file
-
-  // Set the volume of the third audio to be lower than the others
-  audio3.volume = 0.6; // Adjust this value (0.0 to 1.0) to control the volume of the third sound
-
-  // Enable looping for all three audio files
-  audio1.loop = true;
-  audio2.loop = true;
-  audio3.loop = true;
-
-  // Play all three sounds at once
-  audio1.play();
-  audio2.play();
-  audio3.play();
-}
-
-//================================================================
-// Call onPlayerNearKey or onKeyCollected based on your game logic
-//================================================================
-
-
-
-
-
-
-
-
-//================================================================
-// Wall Setup (Front, Back, Left, Right)
-//================================================================
-
-// Front Wall
-const frontWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Front wall texture
-frontWallTexture.wrapS = THREE.RepeatWrapping;
-frontWallTexture.wrapT = THREE.RepeatWrapping;
-frontWallTexture.repeat.set(30, 10); // Scale texture to fit
-
-const frontWallMaterial = new THREE.MeshStandardMaterial({ 
-    map: frontWallTexture, 
-    side: THREE.DoubleSide, 
-    roughness: 0, 
-    metalness: 0.5 // Optional: for added shininess
-});
-const frontWall = new THREE.Mesh(new THREE.BoxGeometry(100, 40, 1), frontWallMaterial);
-frontWall.position.z = -50;
-frontWall.castShadow = true;
-frontWall.receiveShadow = true;
-scene.add(frontWall);
-
-// Back Wall
-const backWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Back wall texture
-backWallTexture.wrapS = THREE.RepeatWrapping;
-backWallTexture.wrapT = THREE.RepeatWrapping;
-backWallTexture.repeat.set(30, 10); // Adjust the repeat scale
-
-const backWallMaterial = new THREE.MeshStandardMaterial({ 
-    map: backWallTexture, 
-    side: THREE.DoubleSide, 
-    roughness: 0, 
-    metalness: 0.5
-});
-const backWall = new THREE.Mesh(new THREE.BoxGeometry(100, 40, 1), backWallMaterial);
-backWall.position.z = 50;
-backWall.castShadow = true;
-backWall.receiveShadow = true;
-scene.add(backWall);
-
-// Left Wall
-const leftWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Left wall texture
-leftWallTexture.wrapS = THREE.RepeatWrapping;
-leftWallTexture.wrapT = THREE.RepeatWrapping;
-leftWallTexture.repeat.set(30, 10); // Adjust the repeat scale
-
-const leftWallMaterial = new THREE.MeshStandardMaterial({ 
-    map: leftWallTexture, 
-    side: THREE.DoubleSide, 
-    roughness: 0, 
-    metalness: 0.5
-});
-const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1, 40, 100), leftWallMaterial);
-leftWall.position.set(-52, 2, -1);
-leftWall.scale.set(1, 2, 0.6);
-
-leftWall.castShadow = true;
-leftWall.receiveShadow = true;
-scene.add(leftWall);
-
-// Left Wall 1
-const left1WallTexture = textureLoader.load('/images/texture/tile.jpg'); // Left wall texture
-left1WallTexture.wrapS = THREE.RepeatWrapping;
-left1WallTexture.wrapT = THREE.RepeatWrapping;
-left1WallTexture.repeat.set(30, 10); // Adjust the repeat scale
-
-const left1WallMaterial = new THREE.MeshStandardMaterial({ 
-    map: left1WallTexture, 
-    side: THREE.DoubleSide, 
-    roughness: 0, 
-    metalness: 0.5
-});
-const left1Wall = new THREE.Mesh(new THREE.BoxGeometry(1, 40, 100), left1WallMaterial);
-left1Wall.scale.set(8, 0.3, 0.3);
-left1Wall.position.set(-44, 20, 35);
-
-left1Wall.castShadow = true;
-left1Wall.receiveShadow = true;
-scene.add(left1Wall);
-
-// Right Wall
-const rightWallTexture = textureLoader.load('/images/texture/tile.jpg'); // Right wall texture
-rightWallTexture.wrapS = THREE.RepeatWrapping;
-rightWallTexture.wrapT = THREE.RepeatWrapping;
-rightWallTexture.repeat.set(30, 10); // Adjust the repeat scale
-
-const rightWallMaterial = new THREE.MeshStandardMaterial({ 
-    map: rightWallTexture, 
-    side: THREE.DoubleSide, 
-    roughness: 0, 
-    metalness: 0.5
-});
-const rightWall = new THREE.Mesh(new THREE.BoxGeometry(1, 40, 100), rightWallMaterial);
-rightWall.position.x = 50;
-rightWall.castShadow = true;
-rightWall.receiveShadow = true;
-scene.add(rightWall);
-
-//================================================================
-// Ceiling and Floor Setup
-//================================================================
-/*
-
-// Ceiling
-const ceilingTexture = textureLoader.load('images/texture/tile.jpg'); // Ceiling texture
-ceilingTexture.wrapS = THREE.RepeatWrapping;
-ceilingTexture.wrapT = THREE.RepeatWrapping;
-ceilingTexture.repeat.set(0, 0); // Adjust the repeat scale
-
-const ceilingMaterial = new THREE.MeshStandardMaterial({ 
-    map: ceilingTexture, 
-    side: THREE.DoubleSide, 
-    roughness: 0, 
-    metalness: 0.5
-});
-const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), ceilingMaterial);
-ceiling.rotation.x = Math.PI / 2;
-ceiling.position.y = 22; // Place it above the floor
-ceiling.receiveShadow = true;
-scene.add(ceiling);
-
-*/
-
 // Floor
 const floorTexture = textureLoader.load('/images/texture/tile.jpg'); // Floor texture (same texture as ceiling)
 floorTexture.wrapS = THREE.RepeatWrapping;
@@ -556,93 +369,11 @@ floor.position.y = 0; // Place it on the ground
 floor.receiveShadow = true;
 scene.add(floor);
 
-//================================================================
-// GUI Setup
-//================================================================
-const gui = new GUI();
-
-// Light Intensity Control
-const lightFolder = gui.addFolder('Lighting');
-const ambientLightControl = lightFolder.add(ambientLight, 'intensity', 0, 2).name('Ambient Light Intensity');
-const directionalLightControl = lightFolder.add(directionalLight, 'intensity', 0, 2).name('Directional Light Intensity');
-
-// Directional Light Direction Controls
-const lightDirectionFolder = gui.addFolder('Light Direction');
-const initialLightPosition = {
-  x: 50,
-  y: 50,
-  z: 50
-};
-
-// Set initial position of the directional light
-directionalLight.position.set(initialLightPosition.x, initialLightPosition.y, initialLightPosition.z);
-
-// Initialize GUI controls for light position
-lightDirectionFolder.add(initialLightPosition, 'x', -50, 50).name('Light X Position').onChange((value) => {
-  directionalLight.position.x = value;
-});
-lightDirectionFolder.add(initialLightPosition, 'y', -50, 50).name('Light Y Position').onChange((value) => {
-  directionalLight.position.y = value;
-});
-lightDirectionFolder.add(initialLightPosition, 'z', -50, 50).name('Light Z Position').onChange((value) => {
-  directionalLight.position.z = value;
-});
-
-// Fog Controls
-const fogFolder = gui.addFolder('Fog');
-const fogIntensityControl = fogFolder.add({ fogDensity: fogDensity }, 'fogDensity', 0, 0.1).name('Fog Density').onChange((value) => {
-  scene.fog.density = value;
-});
-
-const fogColorControl = fogFolder.addColor({ fogColor: fogColor.getHex() }, 'fogColor').name('Fog Color').onChange((value) => {
-  scene.fog.color.set(value);
-});
-
-//================================================================
-// Initialize the GUI
-//================================================================
-lightFolder.close(); // Open the lighting folder
-lightDirectionFolder.close(); // Open the light direction folder
-fogFolder.close(); // Open the fog folder
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 //================================================================
 // Camera Setup
 //================================================================
-camera.position.set(37, 116, 11); // Set camera position
+camera.position.set(23, 7, -42); // Set camera position
 //30, 100, 5
 // Setup OrbitControls for environment editing
 const orbitControls = new OrbitControls(camera, renderer.domElement);
@@ -661,6 +392,9 @@ if (pointerLockControls && pointerLockControls.object instanceof THREE.Object3D)
 } else {
   console.error('PointerLockControls object is not valid');
 }
+
+
+
 scene.add(pointerLockControls.object);
 // Instantiate FPSControls
 const fpsControls = new FPSControls(camera, scene, pointerLockControls);
@@ -678,103 +412,6 @@ let zombieState = "patrolling"; // Initial state of the zombie
 
 const clock = new THREE.Clock();
 
-//================================================================
-// Screen Effects (Damage Overlay)
-//================================================================
-const damageOverlay = document.getElementById('damage-overlay');
-
-// Function to make the screen flicker red
-function triggerRedFlicker() {
-  let flickerCount = 0; // Count flickers
-  const maxFlickers = 5; // Total number of flickers
-
-  const interval = setInterval(() => {
-    damageOverlay.style.opacity = damageOverlay.style.opacity === '0' ? '1' : '0';
-    flickerCount++;
-    if (flickerCount >= maxFlickers * 2) {
-      clearInterval(interval);
-      damageOverlay.style.opacity = '0'; // Ensure it ends in a non-visible state
-    }
-  }, 100); // Flicker interval (in milliseconds)
- 
-}
-
-const attackSound = new Audio('/sounds/Call of Duty Zombie Scream - Sound Effect  ProSounds.mp3'); // Add your attack sound file here
-// Increase the volume and ensure it plays strongly
-attackSound.volume = 1; // Max volume
-attackSound.playbackRate = 2; // Slightly increase playback speed for intensi
-function onZombieAttack() {
-  triggerRedFlicker();
-  console.log('Player attacked by zombie!');
-
-  // Play the attack sound
-  attackSound.play();
-
-  // Ensure the zombie doesn't tilt during the attack
-  zombie.rotation.x = 0;  // Reset X-axis rotation (no tilt)
-  zombie.rotation.z = 0;  // Reset Z-axis rotation (no tilt)
-
-  // Make the zombie's face face directly toward the camera when attacking
-  const directionToCamera = new THREE.Vector3();
-  directionToCamera.subVectors(camera.position, zombie.position).normalize();
-  
-  // Calculate the angle to rotate towards the camera (Y-axis rotation)
-  const angle = Math.atan2(directionToCamera.x, directionToCamera.z);  // Use directionToCamera here
-  zombie.rotation.y = angle;
-
-  // Trigger the attack animation here if any
-  // For example:
-  // zombieAnimation.play("attack_animation");
-
-  // Camera shake logic
-  const shakeDuration = 0.2; // Shake duration in seconds
-  const shakeMagnitude = 0.1; // Magnitude of shake (how far the camera moves)
-
-  const originalCameraPosition = camera.position.clone(); // Store the original position
-  const originalFOV = camera.fov; // Store the original FOV
-  
-  // Set the zoom effect (zoom in the camera)
-  const zoomDuration = 0.2; // Duration of zoom effect in seconds
-  const zoomMagnitude = 30; // The field of view to zoom into (smaller means more zoomed in)
-  camera.fov = zoomMagnitude; // Set the camera to zoom in
-
-  let shakeTime = 0;
-  let zoomTime = 0;
-
-  function shakeCamera() {
-    if (shakeTime < shakeDuration) {
-      // Apply random movement to the camera position
-      camera.position.x = originalCameraPosition.x + (Math.random() - 0.5) * shakeMagnitude;
-      camera.position.y = originalCameraPosition.y + (Math.random() - 0.5) * shakeMagnitude;
-      camera.position.z = originalCameraPosition.z + (Math.random() - 0.5) * shakeMagnitude;
-
-      shakeTime += 0.016; // Assume 60 FPS, so 1 frame = 0.016s
-      requestAnimationFrame(shakeCamera); // Continue shaking
-    } else {
-      // Restore the camera to its original position after the shake
-      camera.position.copy(originalCameraPosition);
-    }
-  }
-
-  function zoomCamera() {
-    if (zoomTime < zoomDuration) {
-      // Gradually zoom back to the original FOV
-      camera.fov = THREE.MathUtils.lerp(camera.fov, originalFOV, zoomTime / zoomDuration);
-      camera.updateProjectionMatrix(); // Update the camera's projection matrix to apply the FOV change
-
-      zoomTime += 0.016; // Assume 60 FPS, so 1 frame = 0.016s
-      requestAnimationFrame(zoomCamera); // Continue zooming
-    } else {
-      // Reset the camera's FOV after zoom effect
-      camera.fov = originalFOV;
-      camera.updateProjectionMatrix();
-    }
-  }
-  
-  // Start the shake and zoom effects
-  shakeCamera();
-  zoomCamera();
-}
 
 
 
@@ -1684,7 +1321,7 @@ const customDoorGeometry = new THREE.BoxGeometry(1, 3, 0.2); // Width, height, d
 const texturedPasswordDoor = new THREE.Mesh(customDoorGeometry, customDoorMaterial);
 
 // Position and scale the door
-texturedPasswordDoor.position.set(23, 7, -42); // Same position as the original door
+texturedPasswordDoor.position.set(16, 7, -42); // Same position as the original door
 texturedPasswordDoor.rotation.y = Math.PI / 2;
 texturedPasswordDoor.scale.set(16, 6, 4);  // Example scale (width, height, depth)
 
@@ -1769,6 +1406,23 @@ function onMouseMove(event) {
     interactionUI.innerHTML = "";  // Clear instructions when not near the device
   }
 }
+
+
+if (passwordDevice) {
+  const intersects = raycaster.intersectObjects([passwordDevice]);
+
+  if (intersects.length > 0 && !isInteracting && isNearDevice() && !deviceInteracted) {
+    interactionUI.innerHTML = "Press E to Interact with the Device Manager";  // Show instructions if near device
+  } else if (intersects.length === 0 && !isInteracting) {
+    interactionUI.innerHTML = "";  // Clear instructions when not near the device
+  }
+} else {
+  console.error("Password device is not defined!");
+}
+
+
+
+
 window.addEventListener('mousemove', onMouseMove);
 
 // Check if player is near the device (within 15 tiles, assuming each tile is 1 unit in 3D space)
@@ -1940,23 +1594,6 @@ function playDeviceInteractionSound() {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //================================================================
 // Animation Loop
 //================================================================
@@ -1992,10 +1629,14 @@ function animate() {
     }
 
     // Ensure pointer lock is engaged before updating first-person controls
-    if (pointerLockControls.isLocked) {
-      fpsControls.update(delta); // Update first-person controls if pointer is locked
+    if (pointerLockControls && pointerLockControls.object) {
+      if (pointerLockControls.isLocked) {
+        fpsControls.update(delta); // Update first-person controls if pointer is locked
+      } else {
+        pointerLockControls.lock(); // Lock pointer if not already locked
+      }
     } else {
-      pointerLockControls.lock(); // Lock pointer if not already locked
+      console.error("PointerLockControls is not initialized correctly");
     }
   } else {
     orbitControls.update(); // Update orbit controls
@@ -2008,141 +1649,8 @@ function animate() {
 
   // Handle animation and render the scene
   renderer.render(scene, camera);
-
-  // Add the flickering candlelight effect
-  if (pointLight) {
-    pointLight.intensity = Math.random() * 0.5 + 0.5; // Flickering effect
-  }
-
-  // Handle animation and render the scene
-  renderer.render(scene, camera);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// SCreate additional elements (e.g., chairs)
- 
-
-//createChair(scene);
-     //createdesk(scene);
-     //createaircon(scene);
-   // createblood(scene);
-      //createflower(scene);
-      //createframe(scene);
-      //createdispenser(scene);
-    //  created_design1(scene);
-   // created_design2(scene);
-    created_design3(scene);
-    created_floor(scene);
-    //created_hallchairs(scene);
-    //created_fence(scene);
-    created_cheaproom(scene);
-    //created_ceiling(scene);
-    //created_nearstatue(scene);
-
-    
-    created_statue(scene)
-  
-//SPAWN POINT-------------------------------------------------------------------
-// First wall (with texture)
-loadWall(scene, { x: 45, y: 2, z: 25 }, '/images/texture/tile.jpg'); // Apply texture to the first wall
-
-// Second wall (with 180° rotation and texture)
-loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {
-  wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall
-                     
-  wallLeft.scale.set(0.453, 1, 2); // Shrink width to create space for the door
-  wallLeft.position.set(24, 2, 33.6); // Adjust position to the left side
-});
-//left
-loadWall(scene, { x: 20, y: 2, z: 20 }, '/images/texture/tile.jpg').then(wallLeft => {
-  wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall                 
-  wallLeft.scale.set(0.1, 0.5, 2); // Shrink width to create space for the door
-  wallLeft.position.set(24, 2, 50); // Adjust position to the left side
-});
-//top
-loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/tile.jpg').then(wallRight => {
-  wallRight.rotation.y = Math.PI / 2; // Rotate right segment of the wall
-  wallRight.scale.set(0.3, 0.4, 2); // Shrink width to create space for the door
-  wallRight.position.set(24, 16, 45); // Adjust position to the right side
-});
-//ceiling room
-loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/tile.jpg').then(wallRight => {
-  wallRight.rotation.x = Math.PI / 2; // Rotate right segment of the wall
-  wallRight.scale.set(0.8, 1, 0.5); // Shrink width to create space for the door
-  wallRight.position.set(42, 13.4, 45); // Adjust position to the right side
-});
-//carpet
-loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/carpet2.jpg').then(wallRight => {
-  wallRight.rotation.x = Math.PI / 2; // Rotate right segment of the wall
-  wallRight.scale.set(0.4, 0.5, 0.2); // Shrink width to create space for the door
-  wallRight.position.set(37, -0, 35); // Adjust position to the right side
-});
-
-//OFFICE AREA-------------------------------------------------------------------
-
-//right wall second path
-loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {
-  wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall
-                     
-  wallLeft.scale.set(1.2, 1, 2); // Shrink width to create space for the door
-  wallLeft.position.set(24, 2, 17); // Adjust position to the left side
-});
-//left wall second path
-loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {
-  wallLeft.rotation.y = Math.PI / 2; // Rotate left segment of the wall
-                     
-  wallLeft.scale.set(0.5, 1, 2); // Shrink width to create space for the door
-  wallLeft.position.set(24, 2, -24); // Adjust position to the left side
-});
-
-//top second path
-loadWall(scene, { x: 3, y: 2, z: 3 }, '/images/texture/tile.jpg').then(wallRight => {
-  wallRight.rotation.y = Math.PI / 2; // Rotate right segment of the wall
-  wallRight.scale.set(2, 0.4, 2); // Shrink width to create space for the door
-  wallRight.position.set(24, 22, -11); // Adjust position to the right side
-});
-//entrance wall
-loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {                
-  wallLeft.scale.set(0.453, 1, 2); // Shrink width to create space for the door
-  wallLeft.position.set(22, 2, 23.6); // Adjust position to the left side
-});
-//entrance wall 2
-loadWall(scene, { x: 20, y: 2, z: 30 }, '/images/texture/tile.jpg').then(wallLeft => {   
-               
-  wallLeft.scale.set(0.5, 1, 2); // Shrink width to create space for the door
-  wallLeft.position.set(14, 2, -30); // Adjust position to the left side
-});
 
 
 
