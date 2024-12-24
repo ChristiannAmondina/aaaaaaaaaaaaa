@@ -400,6 +400,15 @@ if (renderer.domElement) {
   console.error("Renderer DOM element is not ready.");
 }
 
+// Add an event listener to check if pointer lock is successful
+document.addEventListener('pointerlockchange', function() {
+  if (document.pointerLockElement === document.body) {
+    console.log('Pointer lock is active.');
+  } else {
+    console.error('Pointer lock failed.');
+  }
+});
+
 // Debug logging to check initialization status
 console.log("PointerLockControls state:", pointerLockControls);
 console.log("PointerLockControls object:", pointerLockControls.object);
