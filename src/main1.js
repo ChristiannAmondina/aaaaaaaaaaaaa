@@ -1191,7 +1191,7 @@ function showNoKeyNote() {
 let sparkceiling, material;
 
 // Load the GLB model of the ceiling light
-loader.load('/images/models/', (gltf) => {
+loader.load('/images/models/long_office_ceiling_light.glb', (gltf) => {
   sparkceiling = gltf.scene;
   sparkceiling.scale.set(17, 15, 15); // Set the scale of the ceiling light
   sparkceiling.position.set(34, 18.510, -14); // Set the position of the ceiling light
@@ -1594,61 +1594,29 @@ function playDeviceInteractionSound() {
 }
 
 
-//================================================================
-// Animation Loop
-//================================================================
+
+
+
+
+
 function animate() {
-  if (gameOverState) return; // Stop everything if the game is over
+    requestAnimationFrame(animate);
 
-  requestAnimationFrame(animate);
-  TWEEN.update();  // Ensure TWEEN animations are updated in the loop
-  updateInteractionUI(); // Check proximity to device and update UI
+    const delta = clock.getDelta();
 
-  const delta = clock.getDelta();
-
-  // Update any animations that are playing
-  if (mixer) mixer.update(delta); // Update zombie animation mixer, if exists
-  if (waterMixer) waterMixer.update(delta); // Update water animation mixer, if exists
-
-  updateZombie(); // Update zombie behavior
-
-  const playerPosition = camera.position;
-  checkProximityToKey(playerPosition);
-  checkProximityToDoor(playerPosition);
-
-  // Player's distance to the password device
-  if (isNearDevice() && !isInteracting) {
-    interactionUI.innerHTML = "Press E to Interact with the Device Manager"; // Prompt to interact
-  }
-
-  // If in first-person mode, allow zombie interaction
-  if (isFirstPerson) {
-    const distanceToZombie = camera.position.distanceTo(zombie.position);
-    if (distanceToZombie < 100) {
-      zombieFollowPlayer(); // Update zombie to follow player
-    }
-
-    // Ensure pointer lock is engaged before updating first-person controls
+    // Ensure pointer lock is engaged and controls are initialized
     if (pointerLockControls && pointerLockControls.object) {
-      if (pointerLockControls.isLocked) {
-        fpsControls.update(delta); // Update first-person controls if pointer is locked
-      } else {
-        pointerLockControls.lock(); // Lock pointer if not already locked
-      }
+        if (pointerLockControls.isLocked) {
+            fpsControls.update(delta); // Update first-person controls
+        } else {
+            pointerLockControls.lock(); // Attempt to lock pointer if not already locked
+        }
     } else {
-      console.error("PointerLockControls is not initialized correctly");
+        console.error("PointerLockControls is not initialized correctly");
     }
-  } else {
-    orbitControls.update(); // Update orbit controls
-  }
 
-  // Add the flickering candlelight effect
-  if (pointLight) {
-    pointLight.intensity = Math.random() * 0.5 + 0.5; // Flickering effect
-  }
-
-  // Handle animation and render the scene
-  renderer.render(scene, camera);
+    // Render the scene
+    renderer.render(scene, camera);
 }
 
 
