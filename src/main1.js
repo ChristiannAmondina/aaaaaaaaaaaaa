@@ -384,21 +384,33 @@ orbitControls.zoomSpeed = false;
 orbitControls.minDistance = 10;
 orbitControls.maxDistance = 200;
 
-// Setup PointerLockControls for first-person movement
 const pointerLockControls = new PointerLockControls(camera, renderer.domElement);
 
 if (pointerLockControls && pointerLockControls.object instanceof THREE.Object3D) {
-  scene.add(pointerLockControls.object);
+    scene.add(pointerLockControls.object);
 } else {
-  console.error('PointerLockControls object is not valid');
+    console.error('PointerLockControls object is not valid');
 }
 
+scene.add(camera); // Add camera to the scene
+scene.add(pointerLockControls.object); // Add PointerLockControls object to the scene
 
-
-scene.add(pointerLockControls.object);
 // Instantiate FPSControls
 const fpsControls = new FPSControls(camera, scene, pointerLockControls);
 ///
+
+document.addEventListener('click', () => {
+  pointerLockControls.lock();
+});
+
+pointerLockControls.addEventListener('lock', () => {
+  console.log('Pointer locked');
+});
+
+pointerLockControls.addEventListener('unlock', () => {
+  console.log('Pointer unlocked');
+});
+
 ///
 
 //

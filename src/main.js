@@ -1540,7 +1540,7 @@ function showNoKeyNote() {
 let sparkceiling, material;
 
 // Load the GLB model of the ceiling light
-loader.load('/images/models/', (gltf) => {
+loader.load('/images/models/long_office_ceiling_light.glb', (gltf) => {
   sparkceiling = gltf.scene;
   sparkceiling.scale.set(17, 15, 15); // Set the scale of the ceiling light
   sparkceiling.position.set(34, 18.510, -14); // Set the position of the ceiling light
