@@ -369,12 +369,10 @@ floor.position.y = 0; // Place it on the ground
 floor.receiveShadow = true;
 scene.add(floor);
 
-
 //================================================================
 // Camera Setup
 //================================================================
 camera.position.set(23, 7, -42); // Set camera position
-//30, 100, 5
 // Setup OrbitControls for environment editing
 const orbitControls = new OrbitControls(camera, renderer.domElement);
 orbitControls.enableDamping = true;
@@ -384,34 +382,41 @@ orbitControls.zoomSpeed = false;
 orbitControls.minDistance = 10;
 orbitControls.maxDistance = 200;
 
+// Request pointer lock on click
+document.body.requestPointerLock = document.body.requestPointerLock || document.body.mozRequestPointerLock || document.body.webkitRequestPointerLock;
+
+// Add a click event listener to request pointer lock when the user clicks
+document.body.addEventListener('click', function() {
+    document.body.requestPointerLock();
+});
+
+// Initialize PointerLockControls
 const pointerLockControls = new PointerLockControls(camera, renderer.domElement);
 
+// Add PointerLockControls to the scene
 if (pointerLockControls && pointerLockControls.object instanceof THREE.Object3D) {
     scene.add(pointerLockControls.object);
 } else {
     console.error('PointerLockControls object is not valid');
 }
 
-scene.add(camera); // Add camera to the scene
-scene.add(pointerLockControls.object); // Add PointerLockControls object to the scene
+// Add the camera to the scene (only once)
+scene.add(camera); 
 
 // Instantiate FPSControls
 const fpsControls = new FPSControls(camera, scene, pointerLockControls);
-///
 
-document.addEventListener('click', () => {
-  pointerLockControls.lock();
-});
-
+// Event listeners for pointer lock/unlock
 pointerLockControls.addEventListener('lock', () => {
-  console.log('Pointer locked');
+    console.log('Pointer locked');
+    orbitControls.enabled = false; // Disable OrbitControls when pointer lock is active
 });
 
 pointerLockControls.addEventListener('unlock', () => {
-  console.log('Pointer unlocked');
+    console.log('Pointer unlocked');
+    orbitControls.enabled = true; // Enable OrbitControls when pointer lock is released
 });
 
-///
 
 //
 //
@@ -1634,7 +1639,12 @@ function animate() {
   // Render the scene
   renderer.render(scene, camera);
 }
-
+console.log(pointerLockControls);  // Add this in your animate function
+if (pointerLockControls && pointerLockControls.object) {
+    console.log("PointerLockControls is correctly initialized");
+} else {
+    console.error("PointerLockControls issss not initialized correctly");
+}
 
 
 animate();
