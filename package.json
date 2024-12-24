@@ -8,8 +8,8 @@
     "build": "vite build",
     "deploy": "vercel --prod",
     "login": "vercel login",
-    "logout": "vercel logout",
-    "preview": "vite preview" 
+    "logout": "vercel logout"
+    
   },
   "devDependencies": {
     "@types/three": "^0.170.0",
