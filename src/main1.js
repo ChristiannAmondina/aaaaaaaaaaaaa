@@ -735,54 +735,6 @@ loader.load('/images/models/zombie_monster_slasher_necromorph.glb', (gltf) => {
 
 
 
-//================================================================
-// flood
-//================================================================
-
-let water;  // Declare water globally
-let waterMixer;  // Declare a global mixer variable
-
-loader.load('images/models/', (gltf) => {
-  water = gltf.scene;
-  water.scale.set(0.3, 0.3, 0.31);
-  water.position.set(20, 23, 20); // Starting position of the water
-  water.castShadow = true;
-  water.receiveShadow = true;
-  scene.add(water);
-
-  // Make the water darker by adjusting its material
-  water.traverse((child) => {
-    if (child.isMesh) {
-      // Set the color to a darker shade (e.g., dark blue or near black)
-      if (child.material) {
-        child.material.color = new THREE.Color(0x001a33); // Dark blue
-        child.material.emissive = new THREE.Color(0x000000); // No emissive light
-        child.material.needsUpdate = true; // Update the material
-      }
-    }
-  });
-
-  // Create an AnimationMixer if the model has animations
-  if (gltf.animations && gltf.animations.length) {
-    waterMixer = new THREE.AnimationMixer(water); // Initialize mixer inside if-block
-
-    gltf.animations.forEach((clip) => {
-      const action = waterMixer.clipAction(clip);
-      action.play(); // Play all animations
-      action.setEffectiveTimeScale(0.5); // Slow down the animation by setting time scale to 0.5 (50% speed)
-    });
-  }
-
-  // Optional: Log the object to check if it's been added to the camera
-  console.log(water);
-}, undefined, // Optional: onProgress callback
-function (error) { // onError callback
-  console.error('An error occurred while loading the model:', error);
-});
-
-
-
-
 
 
 
