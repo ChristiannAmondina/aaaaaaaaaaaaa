@@ -101,7 +101,6 @@ class FPSControls {
   constructor(camera, scene, pointerLockControls) {
     this.camera = camera;
     this.scene = scene;
-    
     this.pointerLockControls = pointerLockControls;
 
     if (!this.pointerLockControls || !this.pointerLockControls.object) {
@@ -109,19 +108,16 @@ class FPSControls {
       return;
     }
 
-    // Ensure pointerLockControls is initialized and object is set
-   
-
     this.velocity = new THREE.Vector3(0, 0, 0);
     this.acceleration = new THREE.Vector3(250, 2130, 250);
-    this.deceleration = new THREE.Vector3(-10, -55, -10); // Gravity effect
+    this.deceleration = new THREE.Vector3(-10, -55, -10);
     this.move = { forward: false, backward: false, left: false, right: false };
     this.isStanding = true;
-    this.isEditMode = false; // Track whether we are in edit mode
+    this.isEditMode = false;
 
     // Initialize Audio Listener and Sounds
     this.listener = new THREE.AudioListener();
-    this.camera.add(this.listener); // Attach the listener to the camera
+    this.camera.add(this.listener);
 
     // Walking sounds
     this.walkSound = new THREE.Audio(this.listener);
@@ -139,7 +135,7 @@ class FPSControls {
       this.secondWalkSound.setVolume(0.5);
     });
 
-    // Add event listeners for key events
+    // Event listeners for key events
     document.addEventListener('keydown', (e) => this._onKeyDown(e), false);
     document.addEventListener('keyup', (e) => this._onKeyUp(e), false);
 
@@ -159,17 +155,14 @@ class FPSControls {
 
   createTargetMarker() {
     const targetPosition = new THREE.Vector3(-61, 4, -40); // Target position for marker
-  
     const geometry = new THREE.SphereGeometry(0.2, 32, 32); // Small sphere with radius 0.2
-    const material = new THREE.MeshBasicMaterial({ 
+    const material = new THREE.MeshBasicMaterial({
       color: 0xff0000, // Red color
       transparent: true, // Enable transparency
       opacity: 0.0 // Set opacity to 0 (invisible)
     });
     const marker = new THREE.Mesh(geometry, material);
-  
     marker.position.copy(targetPosition);
-  
     this.scene.add(marker);
   }
 
@@ -221,7 +214,6 @@ class FPSControls {
   update(delta) {
     const targetPosition = new THREE.Vector3(-61, 4, -40); // Target position
     const tolerance = 4; // Tolerance for target position proximity
-
 
     if (!this.pointerLockControls || !this.pointerLockControls.object) {
       console.error("PointerLockControls or its object is not defined.");
@@ -1164,18 +1156,6 @@ loader.load('/images/models/long_office_ceiling_light.glb', (gltf) => {
   sparkceiling.castShadow = true;  // Enable casting shadow
   sparkceiling.receiveShadow = true;  // Enable receiving shadow
   scene.add(sparkceiling);
-
-  // Assuming the model has one child (the material you want to modify)
-  material = sparkceiling.children[0].material;
-
-  // Simulate the exposure effect by adjusting material properties
-  material.emissive.setHex(0x000000); // Turn off any emissive light (black)
-  material.color.setHex(0x111111); // Set the color to a very dark tone (simulate lower exposure)
-  material.metalness = 0.5; // Set metalness to 0.5 (slightly reflective)
-  material.roughness = 0.9; // Set roughness to a high value (less reflective)
-
-  // Optional: Further dim the model by reducing the intensity of the material
-  material.emissiveIntensity = 0.1; // Reduce emissive intensity for a dimmer effect
 });
 // Import necessary Three.js components
 
