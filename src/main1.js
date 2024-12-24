@@ -1610,27 +1610,30 @@ function playDeviceInteractionSound() {
 
 
 
-
 function animate() {
-    requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 
-    const delta = clock.getDelta();
+  const delta = clock.getDelta();
 
-    // Ensure pointer lock is engaged and controls are initialized
-    if (pointerLockControls && pointerLockControls.object) {
-        if (pointerLockControls.isLocked) {
-            fpsControls.update(delta); // Update first-person controls
-        } else {
-            pointerLockControls.lock(); // Attempt to lock pointer if not already locked
-        }
-    } else {
-        console.error("PointerLockControls is not initialized correctly");
-    }
+  // Ensure pointer lock is engaged and controls are initialized
+  if (pointerLockControls && pointerLockControls.object) {
+      if (pointerLockControls.isLocked) {
+          // Ensure fpsControls is instantiated before trying to update it
+          if (fpsControls) {
+              fpsControls.update(delta); // Update first-person controls
+          } else {
+              console.error("FPSControls is not initialized.");
+          }
+      } else {
+          pointerLockControls.lock(); // Attempt to lock pointer if not already locked
+      }
+  } else {
+      console.error("PointerLockControls is not initialized correctly");
+  }
 
-    // Render the scene
-    renderer.render(scene, camera);
+  // Render the scene
+  renderer.render(scene, camera);
 }
-
 
 
 
