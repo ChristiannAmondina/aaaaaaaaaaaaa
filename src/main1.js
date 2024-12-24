@@ -108,6 +108,17 @@ class FPSControls {
       return;
     }
 
+
+    if (this.isPointerLockAvailable()) {
+      console.log("Pointer Lock API is supported by your browser.");
+      this.pointerLockControls.lock(); // Lock the pointer for first-person mode
+      this.isEditMode = false;
+    } else {
+      console.error("Pointer Lock API is not available.");
+      alert('Your browser does not support Pointer Lock API. Please try a different browser or enable permissions.');
+    }
+    
+    
     this.velocity = new THREE.Vector3(0, 0, 0);
     this.acceleration = new THREE.Vector3(250, 2130, 250);
     this.deceleration = new THREE.Vector3(-10, -55, -10);
@@ -153,6 +164,13 @@ class FPSControls {
     this.createTargetMarker();
   }
 
+
+  isPointerLockAvailable() {
+    // Check if Pointer Lock is supported
+    return !!(document.pointerLockElement || document.mozPointerLockElement || document.webkitPointerLockElement);
+  }
+
+
   createTargetMarker() {
     const targetPosition = new THREE.Vector3(-61, 4, -40); // Target position for marker
     const geometry = new THREE.SphereGeometry(0.2, 32, 32); // Small sphere with radius 0.2
@@ -167,8 +185,13 @@ class FPSControls {
   }
 
   enterFirstPersonMode() {
-    this.pointerLockControls.lock(); // Lock the pointer for first-person mode
-    this.isEditMode = false;
+    // Lock pointer if supported
+    if (this.isPointerLockAvailable()) {
+      this.pointerLockControls.lock(); // Lock the pointer for first-person mode
+      this.isEditMode = false;
+    } else {
+      console.error("Pointer Lock API is not available.");
+    }
   }
 
   enterEditMode() {
