@@ -373,6 +373,7 @@ scene.add(floor);
 // Camera Setup
 //================================================================
 camera.position.set(23, 7, -42); // Set camera position
+
 // Setup OrbitControls for environment editing
 const orbitControls = new OrbitControls(camera, renderer.domElement);
 orbitControls.enableDamping = true;
@@ -382,7 +383,7 @@ orbitControls.zoomSpeed = false;
 orbitControls.minDistance = 10;
 orbitControls.maxDistance = 200;
 
-// Request pointer lock on click
+// Request pointer lock on click (cross-browser support)
 document.body.requestPointerLock = document.body.requestPointerLock || document.body.mozRequestPointerLock || document.body.webkitRequestPointerLock;
 
 // Add a click event listener to request pointer lock when the user clicks
@@ -390,21 +391,33 @@ document.body.addEventListener('click', function() {
     document.body.requestPointerLock();
 });
 
-// Initialize PointerLockControls
-const pointerLockControls = new PointerLockControls(camera, renderer.domElement);
+// Declare pointerLockControls outside the conditional to make it accessible globally
+let pointerLockControls;
 
-// Add PointerLockControls to the scene
-if (pointerLockControls && pointerLockControls.object instanceof THREE.Object3D) {
-    scene.add(pointerLockControls.object);
+// Ensure renderer.domElement is ready before initializing controls
+if (renderer.domElement) {
+  pointerLockControls = new PointerLockControls(camera, renderer.domElement);
+
+  // Validate and add controls to the scene
+  if (pointerLockControls && pointerLockControls.object instanceof THREE.Object3D) {
+      scene.add(pointerLockControls.object);
+  } else {
+      console.error("PointerLockControls initialization failed.");
+  }
 } else {
-    console.error('PointerLockControls object is not valid');
+  console.error("Renderer DOM element is not ready.");
 }
 
-// Add the camera to the scene (only once)
+// Debug logging to check initialization status
+console.log("PointerLockControls state:", pointerLockControls);
+console.log("PointerLockControls object:", pointerLockControls.object);
+
+// Add the camera to the scene (only once, after initializing controls)
 scene.add(camera); 
 
-// Instantiate FPSControls
+// Instantiate FPSControls with pointerLockControls
 const fpsControls = new FPSControls(camera, scene, pointerLockControls);
+
 
 // Event listeners for pointer lock/unlock
 pointerLockControls.addEventListener('lock', () => {
@@ -1501,24 +1514,19 @@ function animate() {
   // Ensure pointer lock is engaged and controls are initialized
    // Ensure pointer lock is engaged and controls are initialized
    if (pointerLockControls && pointerLockControls.object) {
+    console.log("PointerLockControls state:", pointerLockControls);
+    console.log("PointerLockControls object:", pointerLockControls.object);
+
     if (pointerLockControls.isLocked) {
-        // Ensure fpsControls is instantiated before trying to update it
+        // Update fpsControls when pointer is locked
         if (fpsControls) {
             fpsControls.update(delta); // Update first-person controls
         } else {
             console.error("FPSControls is not initialized.");
         }
     } else {
-        pointerLockControls.lock(); // Attempt to lock pointer if not already locked
-    }
-} else {
-    // Attempt to initialize or reinitialize PointerLockControls
-    console.warn("PointerLockControls is not initialized correctly. Forcing initialization.");
-    try {
-        // Force a lock attempt
-        pointerLockControls.lock();
-    } catch (error) {
-        console.error("Failed to force lock on PointerLockControls:", error);
+        console.log("Pointer is not locked; skipping controls update.");
+        // Do not attempt to lock pointer if it's already locked
     }
 }
 
