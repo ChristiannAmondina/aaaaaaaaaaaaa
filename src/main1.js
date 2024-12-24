@@ -4,7 +4,7 @@
 import './assets/styles.css'; // Adjust the path as necessary
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { GUI } from 'dat.gui'; // Import dat.GUI
 
 import { 
@@ -1181,26 +1181,6 @@ function showNoKeyNote() {
     noKeyNote.style.display = 'block';  // Show "You need the key" note
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //================================================================
 // Ceiling Light Setup (Completely Black)
 //================================================================
@@ -1232,56 +1212,6 @@ loader.load('/images/models/long_office_ceiling_light.glb', (gltf) => {
   // Optional: Further dim the model by reducing the intensity of the material
   material.emissiveIntensity = 0.1; // Reduce emissive intensity for a dimmer effect
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Import necessary Three.js components
 
 import TWEEN from '@tweenjs/tween.js';
@@ -1293,15 +1223,11 @@ const typingSound = new Audio('/sounds/enter button on a keyboard sound effect (
 const deviceInteractionSound = new Audio('/sounds/90s PC boot sequence with sound HD.mp3');
 const doorOpenSound1 = new Audio('/sounds/Faction Vault Door Open (Fortnite Sound) - Sound Effect for editing.mp3');  // Path to the door open sound effect
 
-
-
-
 wrongPasswordSound.volume = 1.0;
 correctPasswordSound.volume = 1.0;
 typingSound.volume = 1.0;
 deviceInteractionSound.volume = 1.0;
 doorOpenSound1.volume = 1.0;  // Set volume to maximum
-
 
 // Create the password door and device
 let passwordDoor, passwordDevice;
